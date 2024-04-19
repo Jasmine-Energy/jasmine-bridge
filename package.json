@@ -67,5 +67,8 @@
   "overrides": {
     "ethers": "^5.7.2",
     "hardhat-deploy": "^0.12.1"
+  },
+  "dependencies": {
+    "@0xsequence/create3": "https://github.com/0xsequence/create3"
   }
 }

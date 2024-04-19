@@ -13,13 +13,7 @@ import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
-// Set your preferred authentication method
-//
-// If you prefer using a mnemonic, set a MNEMONIC environment variable
-// to a valid mnemonic
 const MNEMONIC = process.env.MNEMONIC
-
-// If you prefer to be authenticated using a private key, set a PRIVATE_KEY environment variable
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 
 const accounts: HttpNetworkAccountsUserConfig | undefined = MNEMONIC
@@ -38,7 +32,7 @@ const config: HardhatUserConfig = {
     solidity: {
         compilers: [
             {
-                version: '0.8.22',
+                version: '0.8.24',
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -47,7 +41,7 @@ const config: HardhatUserConfig = {
                 },
             },
             {
-                version: '0.8.24',
+                version: '0.8.22',
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -58,6 +52,18 @@ const config: HardhatUserConfig = {
         ],
     },
     networks: {
+        amoy: {
+            chainId: 80002,
+            eid: EndpointId.AMOY_V2_TESTNET,
+            url: process.env.RPC_URL_AMOY || 'https://rpc.ankr.com/polygon_amoy',
+            accounts,
+        },
+        baseSepolia: {
+            chainId: 84532,
+            eid: EndpointId.BASESEP_V2_TESTNET,
+            url: process.env.RPC_URL_BASESEP || 'https://sepolia.base.org',
+            accounts,
+        },
         sepolia: {
             eid: EndpointId.SEPOLIA_V2_TESTNET,
             url: process.env.RPC_URL_SEPOLIA || 'https://rpc.sepolia.org/',
@@ -68,9 +74,6 @@ const config: HardhatUserConfig = {
             url: process.env.RPC_URL_FUJI || 'https://rpc.ankr.com/avalanche_fuji',
             accounts,
         },
-        // amoy: {
-        //     eid: EndpointId.POLYGON_V2_TESTNET
-        // },
         mumbai: {
             eid: EndpointId.POLYGON_V2_TESTNET,
             url: process.env.RPC_URL_MUMBAI || 'https://rpc.ankr.com/polygon_mumbai',
@@ -79,7 +82,10 @@ const config: HardhatUserConfig = {
     },
     namedAccounts: {
         deployer: {
-            default: 0, // wallet address of index[0], of the mnemonic in .env
+            default: 0,
+        },
+        owner: {
+            default: 1,
         },
     },
 }
