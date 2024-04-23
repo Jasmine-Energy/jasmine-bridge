@@ -8,6 +8,7 @@ import 'dotenv/config'
 import 'hardhat-deploy'
 import 'hardhat-contract-sizer'
 import '@nomiclabs/hardhat-ethers'
+import '@nomicfoundation/hardhat-verify'
 import '@layerzerolabs/toolbox-hardhat'
 import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 
@@ -17,6 +18,7 @@ import './tasks'
 
 const MNEMONIC = process.env.MNEMONIC
 const PRIVATE_KEY = process.env.PRIVATE_KEY
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 
 const accounts: HttpNetworkAccountsUserConfig | undefined = MNEMONIC
     ? { mnemonic: MNEMONIC }
@@ -108,6 +110,22 @@ const config: HardhatUserConfig = {
         owner: {
             default: 1,
         },
+    },
+    etherscan: {
+        apiKey: ETHERSCAN_API_KEY,
+        customChains: [
+            {
+                network: 'amoy',
+                chainId: 80002,
+                urls: {
+                    apiURL: 'https://api-amoy.polygonscan.com/api',
+                    browserURL: 'https://amoy.polygonscan.com',
+                },
+            },
+        ],
+    },
+    sourcify: {
+        enabled: true,
     },
 }
 
