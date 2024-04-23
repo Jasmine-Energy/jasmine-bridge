@@ -3,18 +3,21 @@ import assert from 'assert'
 import { type DeployFunction } from 'hardhat-deploy/types'
 
 // TODO declare your contract name here
-const contractName = 'MyOApp'
+const hubContractName = 'JasmineHubBridge'
+const spokeContractName = 'JasmineSpokeBridge'
 
 const deploy: DeployFunction = async (hre) => {
     const { getNamedAccounts, deployments } = hre
 
     const { deploy } = deployments
-    const { deployer } = await getNamedAccounts()
+    const { deployer, owner } = await getNamedAccounts()
 
     assert(deployer, 'Missing named deployer account')
+    assert(owner, 'Missing named owner account')
 
     console.log(`Network: ${hre.network.name}`)
     console.log(`Deployer: ${deployer}`)
+    console.log(`Owner: ${owner}`)
 
     // This is an external deployment pulled in from @layerzerolabs/lz-evm-sdk-v2
     //
@@ -32,13 +35,22 @@ const deploy: DeployFunction = async (hre) => {
     //     eid: EndpointId.AVALANCHE_V2_TESTNET
     //   }
     // }
+
+    let contractName: string
+    if (hre.network.name === 'amoy') {
+        contractName = hubContractName
+    } else if (hre.network.name === 'baseSepolia') {
+        contractName = spokeContractName
+    } else {
+        contractName = spokeContractName
+    }
     const endpointV2Deployment = await hre.deployments.get('EndpointV2')
 
     const { address } = await deploy(contractName, {
         from: deployer,
         args: [
             endpointV2Deployment.address, // LayerZero's EndpointV2 address
-            deployer, // owner
+            owner, // owner
         ],
         log: true,
         skipIfAlreadyDeployed: false,
@@ -47,6 +59,6 @@ const deploy: DeployFunction = async (hre) => {
     console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
 }
 
-deploy.tags = [contractName]
+deploy.tags = ['Bridge']
 
 export default deploy

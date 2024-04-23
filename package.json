@@ -1,8 +1,8 @@
 {
-  "name": "@layerzerolabs/oapp-example",
-  "version": "0.2.3",
+  "name": "@jasmine-energy/bridge",
+  "version": "0.1.0",
   "private": true,
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "scripts": {
     "clean": "rm -rf artifacts cache out",
     "compile": "$npm_execpath run compile:forge && $npm_execpath run compile:hardhat",
@@ -45,7 +45,7 @@
     "dotenv": "^16.4.1",
     "eslint-plugin-jest-extended": "~2.0.0",
     "ethers": "^5.7.2",
-    "hardhat": "^2.19.5",
+    "hardhat": "^2.22.3",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-deploy": "^0.12.1",
     "mocha": "^10.2.0",

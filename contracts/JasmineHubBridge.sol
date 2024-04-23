@@ -7,11 +7,11 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { OApp, MessagingFee, Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import { MessagingReceipt } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import { OFTPermitAdapter } from "./extensions/OFTPermitAdapter.sol";
-import { BytesLib } from "./utilities/Bytes.sol";
+import { BytesLib } from "./utilities/BytesLib.sol";
 import { Create3 } from "@0xsequence/create3/contracts/Create3.sol";
 
 
-contract JasmineBridge is OApp {
+contract JasmineHubBridge is OApp {
 
     // ──────────────────────────────────────────────────────────────────────────────
     // Libraries
@@ -55,6 +55,10 @@ contract JasmineBridge is OApp {
         adapters[underlying] = adapter;
 
         emit OFTAdapterCreated(underlying, adapter);
+    }
+
+    function setAdapterPeer(address _adapter, uint32 _eid, bytes32 _peer) external onlyOwner {
+        OFTPermitAdapter(_adapter).setPeer(_eid, _peer);
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────

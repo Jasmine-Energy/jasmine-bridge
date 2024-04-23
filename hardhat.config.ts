@@ -13,6 +13,8 @@ import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
+import './tasks'
+
 const MNEMONIC = process.env.MNEMONIC
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 
@@ -34,6 +36,8 @@ const config: HardhatUserConfig = {
             {
                 version: '0.8.24',
                 settings: {
+                    evmVersion: 'cancun',
+                    viaIR: true,
                     optimizer: {
                         enabled: true,
                         runs: 200,
@@ -57,27 +61,44 @@ const config: HardhatUserConfig = {
             eid: EndpointId.AMOY_V2_TESTNET,
             url: process.env.RPC_URL_AMOY || 'https://rpc.ankr.com/polygon_amoy',
             accounts,
+            live: false,
         },
         baseSepolia: {
             chainId: 84532,
             eid: EndpointId.BASESEP_V2_TESTNET,
             url: process.env.RPC_URL_BASESEP || 'https://sepolia.base.org',
             accounts,
+            live: false,
         },
         sepolia: {
             eid: EndpointId.SEPOLIA_V2_TESTNET,
             url: process.env.RPC_URL_SEPOLIA || 'https://rpc.sepolia.org/',
             accounts,
+            live: false,
         },
         fuji: {
             eid: EndpointId.AVALANCHE_V2_TESTNET,
             url: process.env.RPC_URL_FUJI || 'https://rpc.ankr.com/avalanche_fuji',
             accounts,
+            live: false,
         },
         mumbai: {
             eid: EndpointId.POLYGON_V2_TESTNET,
             url: process.env.RPC_URL_MUMBAI || 'https://rpc.ankr.com/polygon_mumbai',
             accounts,
+            live: false,
+        },
+        polygon: {
+            eid: EndpointId.POLYGON_V2_MAINNET,
+            url: process.env.RPC_URL_POLYGON || 'https://rpc.ankr.com/polygon',
+            accounts,
+            live: true,
+        },
+        base: {
+            eid: EndpointId.BASE_V2_MAINNET,
+            url: process.env.RPC_URL_BASE || 'https://rpc.base.org',
+            accounts,
+            live: true,
         },
     },
     namedAccounts: {
