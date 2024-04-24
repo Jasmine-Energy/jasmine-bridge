@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.23.9",
+    "@jasmine-energy/pools-contracts": "https://github.com/Jasmine-Energy/pools-contracts.git#make-package",
     "@layerzerolabs/eslint-config-next": "~2.1.27",
     "@layerzerolabs/lz-definitions": "~2.1.27",
     "@layerzerolabs/lz-evm-messagelib-v2": "~2.1.27",

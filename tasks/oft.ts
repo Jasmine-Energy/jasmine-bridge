@@ -1,6 +1,9 @@
+import assert from 'assert'
+
 import { task } from 'hardhat/config'
 
 import { Options } from '@layerzerolabs/lz-v2-utilities'
+
 import type { HardhatRuntimeEnvironment, TaskArguments } from 'hardhat/types'
 
 task('create:adapter', 'Creates a new OFT adapter on Hub bridge')
@@ -62,7 +65,6 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
             )
             const adapter = await hubBridgeContract.adapters(underlying)
             console.log(`Adapter: ${adapter}`)
-            const eid = config.networks[hubNetwork].eid
             const peer = ethers.utils.hexlify(ethers.utils.zeroPad(adapter, 32))
 
             const contractName = 'JasmineSpokeBridge'
@@ -71,7 +73,7 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
             const bridgeContract = await ethers.getContractAt(contractName, bridgeDeployment.address, ownerSigner)
 
             // const tx = await bridgeContract.createOFT(underlying, name, symbol, 0, ethers.constants.HashZero)
-            const tx = await bridgeContract.createOFT(underlying, name, symbol, eid, peer)
+            const tx = await bridgeContract.createOFT(underlying, name, symbol, peer)
             const result = await tx.wait()
             const oftAddress = result.events?.find((e: { event: string }) => e.event === 'OFTCreated')?.args?.at(1)
             console.log(`OFT created: ${oftAddress} for: ${underlying} at tx: ${result.transactionHash}`)
@@ -128,15 +130,17 @@ task('adapter:peer:set', 'Sets an OFT adapters peer')
 
             const tx = await bridgeContract.setAdapterPeer(adapter, eid, peerAddress)
             const result = await tx.wait()
-            console.log(`Peer set: ${peer} for: ${adapter} at tx: ${result.transactionHash}`)
+            console.log(
+                `Added peer: ${peer} (on network: ${destination}) to adapter: ${adapter} (on network: ${currentNetwork.name}) at tx: ${result.transactionHash}`
+            )
         }
     )
 
 task('oft:quote:send', 'Send OFTs to another chain')
     .addPositionalParam('oft', 'Address of the OFT token')
-    .addPositionalParam('amount', 'Amount to send')
-    .addPositionalParam('peer', 'Address of the peer')
-    .addPositionalParam('destination', 'Network name of the peer')
+    .addPositionalParam('amount', 'Amount to send in formatted using token decimals')
+    .addOptionalParam('peer', 'Address of the peer')
+    .addOptionalParam('destination', 'Network name of the peer')
     .addOptionalParam('sender', 'Address of the sender')
     .setAction(
         async (
@@ -152,11 +156,31 @@ task('oft:quote:send', 'Send OFTs to another chain')
 
             const contractName = 'OFTPermitAdapter'
             const oftContract = await ethers.getContractAt(contractName, oft, signer)
+            const decimals = await oftContract.decimals()
+            amount *= 10 ** decimals
 
-            const eid = config.networks[destination].eid
+            // TODO: Refactor
+            if (!destination) {
+                destination = config.networks[currentNetwork.name].companionNetworks?.spoke
+                assert(destination, 'Missing spoke network')
+            }
+            assert(config.networks[destination].eid, 'Missing eid for destination network')
+            const eid = config.networks[destination].eid!
+
+            if (!peer) {
+                const spokeDeployment = require(
+                    `${config.paths.root}/deployments/${destination}/JasmineSpokeBridge.json`
+                )
+                const spokeBridgeContract = await ethers.getContractAt(
+                    'JasmineSpokeBridge',
+                    spokeDeployment.address,
+                    signer
+                )
+                peer = await spokeBridgeContract.ofts(oft)
+            }
             const peerAddress = ethers.utils.hexlify(ethers.utils.zeroPad(peer, 32))
 
-            const options = Options.newOptions().addExecutorLzReceiveOption(200000, 0).toHex().toString()
+            const options = Options.newOptions().addExecutorLzReceiveOption(100_000, 0).toHex().toString()
             const params = [eid, peerAddress, amount, amount, options, [], []]
             const quote = await oftContract.quoteSend(params, false)
             console.log('Native fee:', quote[0])
@@ -170,14 +194,14 @@ task('oft:quote:send', 'Send OFTs to another chain')
 
 task('oft:send', 'Send OFTs to another chain')
     .addPositionalParam('oft', 'Address of the OFT token')
-    .addPositionalParam('amount', 'Amount to send')
-    .addPositionalParam('peer', 'Address of the peer')
-    .addPositionalParam('destination', 'Network name of the peer')
+    .addPositionalParam('amount', 'Amount to send in formatted using token decimals')
+    .addOptionalParam('peer', 'Address of the peer')
+    .addOptionalParam('destination', 'Network name of the peer')
     .addOptionalParam('sender', 'Address of the sender')
     .setAction(
         async (
             { oft, amount, peer, destination, sender }: TaskArguments,
-            { network: currentNetwork, run, ethers, getNamedAccounts }: HardhatRuntimeEnvironment
+            { network: currentNetwork, run, ethers, config, getNamedAccounts }: HardhatRuntimeEnvironment
         ) => {
             const { owner } = await getNamedAccounts()
             const signer = await ethers.getSigner(sender ? sender : owner)
@@ -188,6 +212,24 @@ task('oft:send', 'Send OFTs to another chain')
 
             const contractName = 'OFTPermitAdapter'
             const oftContract = await ethers.getContractAt(contractName, oft, signer)
+
+            // TODO: Refactor
+            if (!destination) {
+                destination = config.networks[currentNetwork.name].companionNetworks?.spoke
+                assert(destination, 'Missing spoke network')
+            }
+
+            if (!peer) {
+                const spokeDeployment = require(
+                    `${config.paths.root}/deployments/${destination}/JasmineSpokeBridge.json`
+                )
+                const spokeBridgeContract = await ethers.getContractAt(
+                    'JasmineSpokeBridge',
+                    spokeDeployment.address,
+                    signer
+                )
+                peer = await spokeBridgeContract.ofts(oft)
+            }
 
             const { params, quote } = await run('oft:quote:send', { oft, amount, peer, destination, sender })
 

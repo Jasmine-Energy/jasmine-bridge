@@ -6,16 +6,14 @@ import { type DeployFunction } from 'hardhat-deploy/types'
 const hubContractName = 'JasmineHubBridge'
 const spokeContractName = 'JasmineSpokeBridge'
 
-const deploy: DeployFunction = async (hre) => {
-    const { getNamedAccounts, deployments } = hre
-
+const deploy: DeployFunction = async ({ getNamedAccounts, deployments, config, network }) => {
     const { deploy } = deployments
     const { deployer, owner } = await getNamedAccounts()
 
     assert(deployer, 'Missing named deployer account')
     assert(owner, 'Missing named owner account')
 
-    console.log(`Network: ${hre.network.name}`)
+    console.log(`Network: ${network.name}`)
     console.log(`Deployer: ${deployer}`)
     console.log(`Owner: ${owner}`)
 
@@ -36,27 +34,32 @@ const deploy: DeployFunction = async (hre) => {
     //   }
     // }
 
+    const endpointV2Deployment = await deployments.get('EndpointV2')
+
     let contractName: string
-    if (hre.network.name === 'amoy') {
+    const args: any[] = [
+        endpointV2Deployment.address, // LayerZero's EndpointV2 address
+        owner, // owner
+    ]
+    if (network.name === 'amoy') {
         contractName = hubContractName
-    } else if (hre.network.name === 'baseSepolia') {
+    } else if (network.name === 'baseSepolia') {
         contractName = spokeContractName
+        const rootEid = config.networks['baseSepolia'].eid
+        assert(rootEid, 'Missing rootEid for baseSepolia network (root network: amoy)')
+        args.push(rootEid)
     } else {
-        contractName = spokeContractName
+        throw new Error(`Unsupported network: ${network.name}`)
     }
-    const endpointV2Deployment = await hre.deployments.get('EndpointV2')
 
     const { address } = await deploy(contractName, {
         from: deployer,
-        args: [
-            endpointV2Deployment.address, // LayerZero's EndpointV2 address
-            owner, // owner
-        ],
+        args,
         log: true,
         skipIfAlreadyDeployed: false,
     })
 
-    console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
+    console.log(`Deployed contract: ${contractName}, network: ${network.name}, address: ${address}`)
 }
 
 deploy.tags = ['Bridge']

@@ -64,6 +64,9 @@ const config: HardhatUserConfig = {
             url: process.env.RPC_URL_AMOY || 'https://rpc.ankr.com/polygon_amoy',
             accounts,
             live: false,
+            companionNetworks: {
+                spoke: 'baseSepolia',
+            },
         },
         baseSepolia: {
             chainId: 84532,
@@ -71,22 +74,13 @@ const config: HardhatUserConfig = {
             url: process.env.RPC_URL_BASESEP || 'https://sepolia.base.org',
             accounts,
             live: false,
+            companionNetworks: {
+                hub: 'amoy',
+            },
         },
         sepolia: {
             eid: EndpointId.SEPOLIA_V2_TESTNET,
             url: process.env.RPC_URL_SEPOLIA || 'https://rpc.sepolia.org/',
-            accounts,
-            live: false,
-        },
-        fuji: {
-            eid: EndpointId.AVALANCHE_V2_TESTNET,
-            url: process.env.RPC_URL_FUJI || 'https://rpc.ankr.com/avalanche_fuji',
-            accounts,
-            live: false,
-        },
-        mumbai: {
-            eid: EndpointId.POLYGON_V2_TESTNET,
-            url: process.env.RPC_URL_MUMBAI || 'https://rpc.ankr.com/polygon_mumbai',
             accounts,
             live: false,
         },
@@ -95,12 +89,18 @@ const config: HardhatUserConfig = {
             url: process.env.RPC_URL_POLYGON || 'https://rpc.ankr.com/polygon',
             accounts,
             live: true,
+            companionNetworks: {
+                spoke: 'base',
+            },
         },
         base: {
             eid: EndpointId.BASE_V2_MAINNET,
             url: process.env.RPC_URL_BASE || 'https://rpc.base.org',
             accounts,
             live: true,
+            companionNetworks: {
+                hub: 'polygon',
+            },
         },
     },
     namedAccounts: {
