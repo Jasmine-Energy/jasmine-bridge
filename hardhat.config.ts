@@ -19,6 +19,7 @@ import './tasks'
 const MNEMONIC = process.env.MNEMONIC
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
+const POLYSCAN_API_KEY = process.env.POLYSCAN_API_KEY
 
 const accounts: HttpNetworkAccountsUserConfig | undefined = MNEMONIC
     ? { mnemonic: MNEMONIC }
@@ -58,6 +59,16 @@ const config: HardhatUserConfig = {
         ],
     },
     networks: {
+        sepolia: {
+            chainId: 11155111,
+            eid: EndpointId.SEPOLIA_V2_TESTNET,
+            url: process.env.RPC_URL_SEPOLIA || 'https://rpc.sepolia.org/',
+            accounts,
+            live: false,
+            companionNetworks: {
+                spoke: 'baseSepolia',
+            },
+        },
         amoy: {
             chainId: 80002,
             eid: EndpointId.AMOY_V2_TESTNET,
@@ -75,14 +86,8 @@ const config: HardhatUserConfig = {
             accounts,
             live: false,
             companionNetworks: {
-                hub: 'amoy',
+                hub: 'sepolia',
             },
-        },
-        sepolia: {
-            eid: EndpointId.SEPOLIA_V2_TESTNET,
-            url: process.env.RPC_URL_SEPOLIA || 'https://rpc.sepolia.org/',
-            accounts,
-            live: false,
         },
         polygon: {
             eid: EndpointId.POLYGON_V2_MAINNET,
@@ -112,7 +117,13 @@ const config: HardhatUserConfig = {
         },
     },
     etherscan: {
-        apiKey: ETHERSCAN_API_KEY,
+        apiKey: {
+            polygon: POLYSCAN_API_KEY ?? '',
+            amoy: POLYSCAN_API_KEY ?? '',
+            sepolia: ETHERSCAN_API_KEY ?? '',
+            baseSepolia: ETHERSCAN_API_KEY ?? '',
+            base: ETHERSCAN_API_KEY ?? '',
+        },
         customChains: [
             {
                 network: 'amoy',

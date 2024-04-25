@@ -6,17 +6,31 @@ import { Options } from '@layerzerolabs/lz-v2-utilities'
 
 import type { HardhatRuntimeEnvironment, TaskArguments } from 'hardhat/types'
 
+const hyperlink = (url: string, text: string) => {
+    const OSC = '\u001B]'
+    const BEL = '\u0007'
+    const SEP = ';'
+
+    return [OSC, '8', SEP, SEP, url || text, BEL, text, OSC, '8', SEP, SEP, BEL].join('')
+}
+
+const logLayerZeroTx = (tx: any, isTestnet: boolean) => {
+    return hyperlink(`https://${isTestnet ? 'testnet.' : ''}layerzeroscan.com/tx/${tx.hash}`, tx.hash)
+}
+
+// TODO: Assign task names to string constants
+
 task('create:adapter', 'Creates a new OFT adapter on Hub bridge')
-    .addPositionalParam('address', 'Address of the underlying token')
+    .addPositionalParam('underlying', 'Address of the underlying token')
     .setAction(
         async (
-            { address }: TaskArguments,
+            { underlying }: TaskArguments,
             { network, deployments, ethers, getNamedAccounts }: HardhatRuntimeEnvironment
         ) => {
             const { owner } = await getNamedAccounts()
             const ownerSigner = await ethers.getSigner(owner)
 
-            if (network.name !== 'amoy' && network.name !== 'polygon') {
+            if (network.name !== 'sepolia' && network.name !== 'polygon') {
                 throw new Error('This task can only be run on Amoy or Polygon network')
             }
             const contractName = 'JasmineHubBridge'
@@ -24,12 +38,14 @@ task('create:adapter', 'Creates a new OFT adapter on Hub bridge')
             const bridgeDeployment = await deployments.get(contractName)
             const bridgeContract = await ethers.getContractAt(contractName, bridgeDeployment.address, ownerSigner)
 
-            const tx = await bridgeContract.createAdapter(address)
+            const tx = await bridgeContract.createAdapter(underlying)
             const result = await tx.wait()
             const adapterAddress = result.events
                 ?.find((e: { event: string }) => e.event === 'OFTAdapterCreated')
                 ?.args?.at(1)
-            console.log(`Adapter created: ${adapterAddress} for: ${address} at tx: ${result.transactionHash}`)
+            console.log(`Adapter created: ${adapterAddress} for: ${underlying} at tx: ${result.transactionHash}`)
+
+            return adapterAddress
         }
     )
 
@@ -48,7 +64,7 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
             }
 
             // Read token info from origin chain
-            const hubNetwork = network.live ? 'polygon' : 'amoy'
+            const hubNetwork = network.live ? 'polygon' : 'sepolia'
             const provider = new ethers.providers.JsonRpcProvider(
                 // @ts-ignore
                 config.networks[hubNetwork].url
@@ -77,6 +93,8 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
             const result = await tx.wait()
             const oftAddress = result.events?.find((e: { event: string }) => e.event === 'OFTCreated')?.args?.at(1)
             console.log(`OFT created: ${oftAddress} for: ${underlying} at tx: ${result.transactionHash}`)
+
+            return oftAddress
         }
     )
 
@@ -90,7 +108,7 @@ task('adapter:get', 'Gets an OFT adapter')
             const { owner } = await getNamedAccounts()
             const ownerSigner = await ethers.getSigner(owner)
 
-            if (network.name !== 'amoy' && network.name !== 'polygon') {
+            if (network.name !== 'sepolia' && network.name !== 'polygon') {
                 throw new Error('This task can only be run on Amoy or Polygon network')
             }
             const contractName = 'JasmineHubBridge'
@@ -115,7 +133,7 @@ task('adapter:peer:set', 'Sets an OFT adapters peer')
             const { owner } = await getNamedAccounts()
             const ownerSigner = await ethers.getSigner(owner)
 
-            if (currentNetwork.name !== 'amoy' && currentNetwork.name !== 'polygon') {
+            if (currentNetwork.name !== 'sepolia' && currentNetwork.name !== 'polygon') {
                 throw new Error('This task can only be run on Polygon networks')
             }
 
@@ -150,13 +168,13 @@ task('oft:quote:send', 'Send OFTs to another chain')
             const { owner } = await getNamedAccounts()
             const signer = await ethers.getSigner(sender ? sender : owner)
 
-            if (currentNetwork.name !== 'polygon' && currentNetwork.name !== 'amoy') {
+            if (currentNetwork.name !== 'polygon' && currentNetwork.name !== 'sepolia') {
                 throw new Error('This task can only be run on Polygon network')
             }
 
             const contractName = 'OFTPermitAdapter'
             const oftContract = await ethers.getContractAt(contractName, oft, signer)
-            const decimals = await oftContract.decimals()
+            const decimals = 6 //await oftContract.decimals()
             amount *= 10 ** decimals
 
             // TODO: Refactor
@@ -180,7 +198,7 @@ task('oft:quote:send', 'Send OFTs to another chain')
             }
             const peerAddress = ethers.utils.hexlify(ethers.utils.zeroPad(peer, 32))
 
-            const options = Options.newOptions().addExecutorLzReceiveOption(100_000, 0).toHex().toString()
+            const options = Options.newOptions().addExecutorLzReceiveOption(75_000, 0).toHex().toString()
             const params = [eid, peerAddress, amount, amount, options, [], []]
             const quote = await oftContract.quoteSend(params, false)
             console.log('Native fee:', quote[0])
@@ -201,12 +219,19 @@ task('oft:send', 'Send OFTs to another chain')
     .setAction(
         async (
             { oft, amount, peer, destination, sender }: TaskArguments,
-            { network: currentNetwork, run, ethers, config, getNamedAccounts }: HardhatRuntimeEnvironment
+            {
+                network: currentNetwork,
+                run,
+                ethers,
+                config,
+                getNamedAccounts,
+                companionNetworks,
+            }: HardhatRuntimeEnvironment
         ) => {
             const { owner } = await getNamedAccounts()
             const signer = await ethers.getSigner(sender ? sender : owner)
 
-            if (currentNetwork.name !== 'polygon' && currentNetwork.name !== 'amoy') {
+            if (currentNetwork.name !== 'polygon' && currentNetwork.name !== 'sepolia') {
                 throw new Error('This task can only be run on Polygon network')
             }
 
@@ -220,20 +245,28 @@ task('oft:send', 'Send OFTs to another chain')
             }
 
             if (!peer) {
-                const spokeDeployment = require(
-                    `${config.paths.root}/deployments/${destination}/JasmineSpokeBridge.json`
-                )
-                const spokeBridgeContract = await ethers.getContractAt(
-                    'JasmineSpokeBridge',
-                    spokeDeployment.address,
-                    signer
-                )
-                peer = await spokeBridgeContract.ofts(oft)
+                const destinationProvider = companionNetworks['spoke'].provider
+                peer = await destinationProvider.send('function ofts(address) returns (address)', [oft])
+                // currentNetwork.companionNetworks['spoke']
+                // const spokeBridgeContract = await ethers.getContractAt(
+                //     'JasmineSpokeBridge',
+                //     spokeDeployment.address,
+                //     new ethers.providers.
+                // )
+                // peer = await spokeBridgeContract.ofts(oft)
             }
 
             const { params, quote } = await run('oft:quote:send', { oft, amount, peer, destination, sender })
 
             const sendTx = await oftContract.send(params, quote, signer.address, { value: quote[0] })
-            console.log(`Sent OFTs to ${peer} at tx: ${sendTx.hash}`)
+            console.log(`Sent OFTs to ${peer} at tx: ${logLayerZeroTx(sendTx, currentNetwork.live)}`)
         }
     )
+
+task('create', 'Creates an OFT adapter and OFT token then links')
+    .addPositionalParam('underlying', 'Address of the underlying token')
+    .setAction(async ({ underlying }: TaskArguments, { network, run }: HardhatRuntimeEnvironment) => {
+        const adapter = await run('create:adapter', { underlying })
+        const oft = await run('create:oft', { underlying })
+        await run('adapter:peer:set', { adapter, peer: oft, destination: network.companionNetworks.spoke })
+    })

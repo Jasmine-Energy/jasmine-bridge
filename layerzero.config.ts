@@ -2,15 +2,20 @@ import { EndpointId } from '@layerzerolabs/lz-definitions'
 
 import type { OAppOmniGraphHardhat, OmniPointHardhat } from '@layerzerolabs/toolbox-hardhat'
 
+const sepoliaContract: OmniPointHardhat = {
+    eid: EndpointId.SEPOLIA_V2_TESTNET,
+    contractName: 'JasmineHubBridge',
+}
+
 const baseSepoliaContract: OmniPointHardhat = {
     eid: EndpointId.BASESEP_V2_TESTNET,
     contractName: 'JasmineSpokeBridge',
 }
 
-const amoyContract: OmniPointHardhat = {
-    eid: EndpointId.AMOY_V2_TESTNET,
-    contractName: 'JasmineHubBridge',
-}
+// const amoyContract: OmniPointHardhat = {
+//     eid: EndpointId.AMOY_V2_TESTNET,
+//     contractName: 'JasmineHubBridge',
+// }
 
 const config: OAppOmniGraphHardhat = {
     contracts: [
@@ -18,16 +23,16 @@ const config: OAppOmniGraphHardhat = {
             contract: baseSepoliaContract,
         },
         {
-            contract: amoyContract,
+            contract: sepoliaContract,
         },
     ],
     connections: [
         {
             from: baseSepoliaContract,
-            to: amoyContract,
+            to: sepoliaContract,
         },
         {
-            from: amoyContract,
+            from: sepoliaContract,
             to: baseSepoliaContract,
         },
         // {

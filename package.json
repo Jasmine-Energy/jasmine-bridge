@@ -14,7 +14,9 @@
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "test": "$npm_execpath run test:forge && $npm_execpath run test:hardhat",
     "test:forge": "forge test",
-    "test:hardhat": "hardhat test"
+    "test:hardhat": "hardhat test",
+    "deploy:testnet": "npx hardhat deploy --network sepolia --reset && npx hardhat deploy --network baseSepolia --reset",
+    "deploy": "npx hardhat deploy --network polygon && npx hardhat deploy --network base"
   },
   "resolutions": {
     "ethers": "^5.7.2",

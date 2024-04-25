@@ -41,11 +41,12 @@ const deploy: DeployFunction = async ({ getNamedAccounts, deployments, config, n
         endpointV2Deployment.address, // LayerZero's EndpointV2 address
         owner, // owner
     ]
-    if (network.name === 'amoy') {
+    if (network.name === 'sepolia') {
         contractName = hubContractName
     } else if (network.name === 'baseSepolia') {
         contractName = spokeContractName
-        const rootEid = config.networks['baseSepolia'].eid
+        const hubNetwork = config.networks[network.name].companionNetworks['hub']
+        const rootEid = config.networks[hubNetwork].eid
         assert(rootEid, 'Missing rootEid for baseSepolia network (root network: amoy)')
         args.push(rootEid)
     } else {
