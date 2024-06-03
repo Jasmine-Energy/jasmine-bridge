@@ -14,8 +14,9 @@ const hyperlink = (url: string, text: string) => {
     return [OSC, '8', SEP, SEP, url || text, BEL, text, OSC, '8', SEP, SEP, BEL].join('')
 }
 
-const logLayerZeroTx = (tx: any, isTestnet: boolean) => {
-    return hyperlink(`https://${isTestnet ? 'testnet.' : ''}layerzeroscan.com/tx/${tx.hash}`, tx.hash)
+const logLayerZeroTx = (tx: string | { hash: string }, isTestnet: boolean) => {
+    const txHash = typeof tx === 'string' ? tx : tx.hash
+    return hyperlink(`https://${isTestnet ? 'testnet.' : ''}layerzeroscan.com/tx/${txHash}`, txHash)
 }
 
 // TODO: Assign task names to string constants
@@ -157,49 +158,45 @@ task('adapter:peer:set', 'Sets an OFT adapters peer')
 task('oft:quote:send', 'Send OFTs to another chain')
     .addPositionalParam('oft', 'Address of the OFT token')
     .addPositionalParam('amount', 'Amount to send in formatted using token decimals')
-    .addOptionalParam('peer', 'Address of the peer')
+    .addOptionalParam('to', 'Recipient on destination chain')
     .addOptionalParam('destination', 'Network name of the peer')
     .addOptionalParam('sender', 'Address of the sender')
     .setAction(
         async (
-            { oft, amount, peer, destination, sender }: TaskArguments,
+            { oft, amount, destination, to, sender }: TaskArguments,
             { network: currentNetwork, ethers, getNamedAccounts, config }: HardhatRuntimeEnvironment
         ) => {
             const { owner } = await getNamedAccounts()
             const signer = await ethers.getSigner(sender ? sender : owner)
 
-            if (currentNetwork.name !== 'polygon' && currentNetwork.name !== 'sepolia') {
+            let contractName: string
+            if (currentNetwork.name === 'polygon' || currentNetwork.name === 'sepolia') {
+                contractName = 'OFTPermitAdapter'
+                if (!destination) {
+                    destination = config.networks[currentNetwork.name].companionNetworks?.spoke
+                    assert(destination, 'Missing spoke network')
+                }
+            } else if (currentNetwork.name === 'base' || currentNetwork.name === 'baseSepolia') {
+                contractName = 'JasmineOFT'
+                if (!destination) {
+                    destination = config.networks[currentNetwork.name].companionNetworks?.hub
+                    assert(destination, 'Missing hub network')
+                }
+            } else {
                 throw new Error('This task can only be run on Polygon network')
             }
 
-            const contractName = 'OFTPermitAdapter'
             const oftContract = await ethers.getContractAt(contractName, oft, signer)
-            const decimals = 6 //await oftContract.decimals()
+            const decimals = contractName === 'JasmineOFT' ? await oftContract.decimals() : 6
             amount *= 10 ** decimals
 
-            // TODO: Refactor
-            if (!destination) {
-                destination = config.networks[currentNetwork.name].companionNetworks?.spoke
-                assert(destination, 'Missing spoke network')
-            }
             assert(config.networks[destination].eid, 'Missing eid for destination network')
             const eid = config.networks[destination].eid!
 
-            if (!peer) {
-                const spokeDeployment = require(
-                    `${config.paths.root}/deployments/${destination}/JasmineSpokeBridge.json`
-                )
-                const spokeBridgeContract = await ethers.getContractAt(
-                    'JasmineSpokeBridge',
-                    spokeDeployment.address,
-                    signer
-                )
-                peer = await spokeBridgeContract.ofts(oft)
-            }
-            const peerAddress = ethers.utils.hexlify(ethers.utils.zeroPad(peer, 32))
+            const toAddress = ethers.utils.hexlify(ethers.utils.zeroPad(to ? to : signer.address, 32))
 
             const options = Options.newOptions().addExecutorLzReceiveOption(75_000, 0).toHex().toString()
-            const params = [eid, peerAddress, amount, amount, options, [], []]
+            const params = [eid, toAddress, amount, amount, options, [], []]
             const quote = await oftContract.quoteSend(params, false)
             console.log('Native fee:', quote[0])
 
@@ -213,53 +210,88 @@ task('oft:quote:send', 'Send OFTs to another chain')
 task('oft:send', 'Send OFTs to another chain')
     .addPositionalParam('oft', 'Address of the OFT token')
     .addPositionalParam('amount', 'Amount to send in formatted using token decimals')
-    .addOptionalParam('peer', 'Address of the peer')
+    .addOptionalParam('to', 'Address to receive the OFTs')
     .addOptionalParam('destination', 'Network name of the peer')
     .addOptionalParam('sender', 'Address of the sender')
     .setAction(
         async (
-            { oft, amount, peer, destination, sender }: TaskArguments,
-            {
-                network: currentNetwork,
-                run,
-                ethers,
-                config,
-                getNamedAccounts,
-                companionNetworks,
-            }: HardhatRuntimeEnvironment
+            { oft, amount, to, destination, sender }: TaskArguments,
+            { network: currentNetwork, run, ethers, config, getNamedAccounts }: HardhatRuntimeEnvironment
         ) => {
             const { owner } = await getNamedAccounts()
             const signer = await ethers.getSigner(sender ? sender : owner)
 
-            if (currentNetwork.name !== 'polygon' && currentNetwork.name !== 'sepolia') {
+            let contractName: string
+            if (currentNetwork.name === 'polygon' || currentNetwork.name === 'sepolia') {
+                contractName = 'OFTPermitAdapter'
+                if (!destination) {
+                    destination = config.networks[currentNetwork.name].companionNetworks?.spoke
+                    assert(destination, 'Missing spoke network')
+                }
+            } else if (currentNetwork.name === 'base' || currentNetwork.name === 'baseSepolia') {
+                contractName = 'JasmineOFT'
+                if (!destination) {
+                    destination = config.networks[currentNetwork.name].companionNetworks?.hub
+                    assert(destination, 'Missing hub network')
+                }
+            } else {
                 throw new Error('This task can only be run on Polygon network')
             }
 
-            const contractName = 'OFTPermitAdapter'
             const oftContract = await ethers.getContractAt(contractName, oft, signer)
+            const { params, quote } = await run('oft:quote:send', { oft, amount, to, destination, sender })
 
-            // TODO: Refactor
-            if (!destination) {
-                destination = config.networks[currentNetwork.name].companionNetworks?.spoke
-                assert(destination, 'Missing spoke network')
-            }
+            const sendTx = await oftContract.send(params, quote, to ? to : signer.address, { value: quote[0] })
+            console.log(`Sent OFTs to at tx: ${logLayerZeroTx(sendTx, !currentNetwork.live)}`)
+        }
+    )
 
-            if (!peer) {
-                const destinationProvider = companionNetworks['spoke'].provider
-                peer = await destinationProvider.send('function ofts(address) returns (address)', [oft])
-                // currentNetwork.companionNetworks['spoke']
-                // const spokeBridgeContract = await ethers.getContractAt(
-                //     'JasmineSpokeBridge',
-                //     spokeDeployment.address,
-                //     new ethers.providers.
-                // )
-                // peer = await spokeBridgeContract.ofts(oft)
-            }
+task('oft:quote:retire', 'Get quote for retiring OFT')
+    .addPositionalParam('oft', 'Address of the OFT token')
+    .setAction(async ({ oft }: TaskArguments, { ethers, getNamedAccounts }: HardhatRuntimeEnvironment) => {
+        const { owner } = await getNamedAccounts()
+        const signer = await ethers.getSigner(owner)
 
-            const { params, quote } = await run('oft:quote:send', { oft, amount, peer, destination, sender })
+        const contractName = 'JasmineOFT'
+        const oftContract = await ethers.getContractAt(contractName, oft, signer)
 
-            const sendTx = await oftContract.send(params, quote, signer.address, { value: quote[0] })
-            console.log(`Sent OFTs to ${peer} at tx: ${logLayerZeroTx(sendTx, currentNetwork.live)}`)
+        const quote = await oftContract.quoteRetire()
+        console.log('Native fee:', quote[0])
+
+        return quote
+    })
+
+task('oft:retire', 'Retire OFT')
+    .addPositionalParam('oft', 'Address of the OFT token')
+    .addPositionalParam('amount', 'Amount to retire in formatted using token decimals')
+    .addOptionalParam('beneficiary', 'Address of the retirement beneficiary')
+    .addOptionalParam('data', 'Data to include in the retirement')
+    .addOptionalParam('from', 'Address of the sender')
+    .setAction(
+        async (
+            { oft, amount, beneficiary, from, data }: TaskArguments,
+            { ethers, getNamedAccounts }: HardhatRuntimeEnvironment
+        ) => {
+            const { owner } = await getNamedAccounts()
+            const signer = await ethers.getSigner(from ? from : owner)
+
+            const contractName = 'JasmineOFT'
+            const oftContract = await ethers.getContractAt(contractName, oft, signer)
+            const decimals = await oftContract.decimals()
+            amount *= 10 ** decimals
+
+            const [nativeFee] = await oftContract.quoteRetire()
+
+            const retireTx = await oftContract.retire(
+                signer.address,
+                beneficiary ?? signer.address,
+                amount,
+                data ?? [],
+                {
+                    value: nativeFee, //.add(100_000_000),
+                }
+            )
+            console.log(`Retired OFTs at tx: ${retireTx.hash}`)
         }
     )
 

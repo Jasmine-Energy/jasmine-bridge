@@ -14,7 +14,7 @@ import { BytesLib } from "../utilities/BytesLib.sol";
 import { MessageLib } from "../utilities/MessageLib.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract JasmineOFT is OFT, ERC20Permit, IJasmineRetireablePool {
+contract JasmineOFT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
     using BytesLib for bytes32;
     using OptionsBuilder for bytes;
 
@@ -54,6 +54,15 @@ contract JasmineOFT is OFT, ERC20Permit, IJasmineRetireablePool {
     //  Retireable Pool Functions
     //  ─────────────────────────────────────────────────────────────────────────────
 
+    function quoteRetire() public view returns (MessagingFee memory fee) {
+        fee = _quote(
+            _getRootEid(),
+            "",
+            OptionsBuilder.newOptions().addExecutorLzReceiveOption(retireGasLimit, 0),
+            false // Pay in lz token
+        );
+    }
+
     /**
      * @notice Retire JLT by burning
      * @dev This request initiate a LayerZero message to execute a retirement
@@ -63,7 +72,7 @@ contract JasmineOFT is OFT, ERC20Permit, IJasmineRetireablePool {
      * @param amount Amount of JLT to retire
      * @param data Optional calldata to relay to retirement service via onERC1155Received
      */
-    function retire(address from, address beneficiary, uint256 amount, bytes calldata data) external returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
+    function retire(address from, address beneficiary, uint256 amount, bytes calldata data) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
         if (from != msg.sender) _spendAllowance(from, msg.sender, amount);
 
         (uint256 amountSentLD, uint256 amountReceivedLD) = _debit(from, amount, _calculateMinRetireLD(amount), _getRootEid());
@@ -85,6 +94,17 @@ contract JasmineOFT is OFT, ERC20Permit, IJasmineRetireablePool {
             false // Pay in lz token
         );
 
+        // If msg.value is less than native, check quote for lz token, else revert
+        if (msg.value < fee.nativeFee) {
+            fee = _quote(
+                sendParams.dstEid,
+                sendParams.composeMsg,
+                options,
+                true
+            );
+            if (msg.value < fee.nativeFee) revert NotEnoughNative(msg.value);
+        }
+
         // NOTE: See OFTMsgCodec.encode. As no composed message is included, simple encode the to and amount.
         bytes memory message = abi.encodePacked(sendParams.to, _toSD(amountReceivedLD));
 
@@ -94,8 +114,6 @@ contract JasmineOFT is OFT, ERC20Permit, IJasmineRetireablePool {
 
         emit OFTSent(msgReceipt.guid, sendParams.dstEid, from, amountSentLD, amountReceivedLD);
     }
-
-    // TODO: Add decimals override
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Getters
@@ -111,6 +129,10 @@ contract JasmineOFT is OFT, ERC20Permit, IJasmineRetireablePool {
 
     function _getRootEid() internal view returns (uint32 rootEid) {
         return IOFTDeployer(owner()).getRootEid();
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 6;
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -133,5 +155,10 @@ contract JasmineOFT is OFT, ERC20Permit, IJasmineRetireablePool {
     function _calculateMinRetireLD(uint256 amount) internal view returns (uint256 minAmountLD) {
         if (retirementFeeBips > 0) minAmountLD = Math.mulDiv(amount, (10_000 - retirementFeeBips), 10_000);
         else minAmountLD = amount;
+    }
+
+    function _payNative(uint256 _nativeFee) internal override virtual returns (uint256 nativeFee) {
+        if (msg.value < _nativeFee) revert NotEnoughNative(msg.value);
+        return _nativeFee;
     }
 }

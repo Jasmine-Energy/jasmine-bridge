@@ -37,7 +37,8 @@ task('token:decimals', 'Prints the decimals of the token')
 task('token:approve', 'Approve spending of tokens')
     .addPositionalParam('token', 'Address of the token')
     .addPositionalParam('spender', 'Address of the spender')
-    .addPositionalParam('amount', 'Amount to approve in formatted using token decimals')
+    .addOptionalPositionalParam('amount', 'Amount to approve in formatted using token decimals')
+    .addFlag('max', 'Approve spender for all funds')
     .addOptionalParam('from', 'Address of the signer')
     .setAction(
         async (
@@ -49,8 +50,12 @@ task('token:approve', 'Approve spending of tokens')
             }
             const signer = await ethers.getSigner(from)
             const tokenContract = await ethers.getContractAt('IERC20Metadata', token, signer)
-            const decimals = await tokenContract.decimals()
-            amount *= 10 ** decimals
+            if (amount) {
+                const decimals = await tokenContract.decimals()
+                amount *= 10 ** decimals
+            } else {
+                amount = ethers.constants.MaxUint256
+            }
             const tx = await tokenContract.approve(spender, amount)
             console.log(`Approved ${amount} tokens to ${spender} with tx hash: ${tx.hash}`)
         }

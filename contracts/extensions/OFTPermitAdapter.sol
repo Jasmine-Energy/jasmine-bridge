@@ -2,19 +2,20 @@
 
 pragma solidity ^0.8.24;
 
-
 //  ─────────────────────────────────────────────────────────────────────────────
 //  Imports
 //  ─────────────────────────────────────────────────────────────────────────────
 
 import { OFTAdapter } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapter.sol";
+import { OApp, MessagingFee, Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
+import { OFTMsgCodec } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { MessageLib } from "../utilities/MessageLib.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import { IJasminePool } from "../interfaces/jasmine/IJasminePool.sol";
+import { JasmineErrors } from "@jasmine-energy/pools-contracts/contracts/interfaces/errors/JasmineErrors.sol";
 
-//  ─────────────────────────────────────────────────────────────────────────────
-//  Custom Errors
-//  ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * @title OFTPermitAdapter
@@ -23,21 +24,21 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
  * @custom:security-contact Kai Aldag<kai.aldag@jasmine.energy
  */
 contract OFTPermitAdapter is OFTAdapter, Multicall {
-
     // ──────────────────────────────────────────────────────────────────────────────
     // Libraries
     // ──────────────────────────────────────────────────────────────────────────────
 
+    using MessageLib for bytes;
+    using OFTMsgCodec for bytes;
+    using OFTMsgCodec for bytes32;
 
     // ──────────────────────────────────────────────────────────────────────────────
     // Events
     // ──────────────────────────────────────────────────────────────────────────────
 
-
     // ──────────────────────────────────────────────────────────────────────────────
     // Fields
     // ──────────────────────────────────────────────────────────────────────────────
-
 
     // ──────────────────────────────────────────────────────────────────────────────
     // Setup
@@ -59,25 +60,71 @@ contract OFTPermitAdapter is OFTAdapter, Multicall {
     //  Permit Functions
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    /// @dev Permits this contract to spend the holder's inner token. This is designed 
+    /// @dev Permits this contract to spend the holder's inner token. This is designed
     // to be called prior to `send()` using a multicall to bypass the pre-approval tx requirement.
-    function permitInnerToken(
-        address holder,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external {
+    function permitInnerToken(address holder, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
         IERC20Permit(address(innerToken)).permit(holder, address(this), value, deadline, v, r, s);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────────
-    // Overrides
-    // ──────────────────────────────────────────────────────────────────────────────
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  LayerZero Functions
+    //  ─────────────────────────────────────────────────────────────────────────────
 
-    /// @inheritdoc OFTAdapter
-    function approvalRequired() external pure override virtual returns (bool) {
-        return false;
+    /**
+     * @dev
+     */
+    function _lzReceive(
+        Origin calldata _origin,
+        bytes32 _guid,
+        bytes calldata payload,
+        address _executor,
+        bytes calldata _extraData
+    ) internal override {
+        // NOTE: If extra data provided, parse and execute operation
+        if (_extraData.length != 0) {
+            _executeLzMessage(_extraData);
+            // QUESTION: Emit here or in _executeLzMessage?
+            emit OFTReceived(_guid, _origin.srcEid, payload.sendTo().bytes32ToAddress(), _toLD(payload.amountSD()));
+        } else {
+            super._lzReceive(_origin, _guid, payload, _executor, _extraData);
+        }
+    }
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  Internal Utilities
+    //  ─────────────────────────────────────────────────────────────────────────────
+
+    //  ─────────────────────────────  Message Parsing  ─────────────────────────────  \\
+
+    function _executeLzMessage(bytes calldata message) internal {
+        (bool isValid, MessageLib.MessageType operation) = message._decodeMessageType();
+        if (!isValid) revert MessageLib.InvalidMessageType(message[0]);
+
+        if (operation == MessageLib.MessageType.TRANSFER) {
+            // TODO: Implement
+        } else if (operation == MessageLib.MessageType.RETIREMENT) {
+            (address beneficiary, uint256 amount, bytes memory data) = message._decodeRetirementMessage();
+            _retireJLT(beneficiary, amount, data);
+        } else if (operation == MessageLib.MessageType.WITHDRAW_ANY) {
+            // TODO: Implement
+        } else if (operation == MessageLib.MessageType.WITHDRAW_SPECIFIC) {
+            // TODO: Implement
+        } else {
+            revert MessageLib.InvalidMessageType(message[0]);
+        }
+    }
+
+    //  ────────────────────────────  JLT Interactions  ─────────────────────────────  \\
+
+    function _retireJLT(address beneficiary, uint256 amount, bytes memory data) internal {
+        IJasminePool(address(innerToken)).retire(address(this), beneficiary, amount, data);
+    }
+
+    function _transferJLT(address recipient, uint256 amount) internal {
+        // TODO: Transfer JLT
+    }
+
+    function _withdrawJLT(address recipient, uint256 amount) internal {
+        // TODO: Withdraw JLT
     }
 }
