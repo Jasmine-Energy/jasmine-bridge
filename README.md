@@ -1,108 +1,44 @@
-<p align="center">
-  <a href="https://layerzero.network">
-    <img alt="LayerZero" style="max-width: 500px" src="https://d3a2dpnnrypp5h.cloudfront.net/bridge-app/lz.png"/>
-  </a>
-</p>
+<h1 align="center">Jasmine Bridge</h1>
 
-<p align="center">
-  <a href="https://layerzero.network" style="color: #a77dff">Homepage</a> | <a href="https://docs.layerzero.network/" style="color: #a77dff">Docs</a> | <a href="https://layerzero.network/developers" style="color: #a77dff">Developers</a>
-</p>
+This repository contains the (work in progress) set of smart contracts enabling Jasmine Liquidity Tokens (JLT) to be bridged between EVM networks. The project makes use of Layer Zero's OFT standard to enabling cross-chain transfers.
 
-<h1 align="center">OApp Example</h1>
+> :warning: **Under Construction**: These contract have no been audited and are not yet live! We expect to finish development in July 2024. Stay tuned!
 
-<p align="center">
-  <a href="https://docs.layerzero.network/contracts/oapp" style="color: #a77dff">Quickstart</a> | <a href="https://docs.layerzero.network/contracts/oapp-configuration" style="color: #a77dff">Configuration</a> | <a href="https://docs.layerzero.network/contracts/options" style="color: #a77dff">Message Execution Options</a> | <a href="https://docs.layerzero.network/contracts/endpoint-addresses" style="color: #a77dff">Endpoint Addresses</a>
-</p>
+## Architecture
 
-<p align="center">Template project for getting started with LayerZero's  <code>OApp</code> contract development.</p>
+On the origin network, Polygon for production and Sepolia for staging, the Jasmine Hub Bridge is deployed, allowing Layer Zero OFT Adapters to be deployed per JLT contract. The OFT Adapter uses a lock-unlock pattern where JLT are held by the adapter when bridged to a spoke network.
 
-## 1) Developing Contracts
+JLT adapters have a set of peers on external networks which can receive cross-chain mint requests from the origin chain's adapter. Once minted, JLT function as they do on the origin chain, allowing retirements to occur on any chain the spoke bridge is deployed to. The one exception is that individual EAT may not be withdrawn directly; the JLT must return to the origin chain before EAT can be withdrawn.
 
-#### Installing dependencies
+## Usage
 
-We recommend using `pnpm` as a package manager (but you can of course use a package manager of your choice):
+1. Install dependencies: `yarn`
+2. Replace `.env.example` with `.env` and set a mnemonic
 
-```bash
-pnpm install
-```
+### Bridging JLT to Spoke Bridge
 
-#### Compiling your contracts
+JLT can be transferred in one of two methods, using ERC-2612 signed approvals or via ERC-20 allowances for the adapter contract.
 
-This project supports both `hardhat` and `forge` compilation. By default, the `compile` command will execute both:
+1. Allowance Signatures (ERC-2612)
 
-```bash
-pnpm compile
-```
+All JLT contract implement ERC-2612 signature allowances, enabling off-chain signature to be generated authorizing their usage. We've made a variant of the Layer Zero standard `OFTAdapter` which supports this style of approval, allowing approval and bridging to occur in a single transaction. See [`OFTPermitAdapter`](./contracts/extensions/OFTPermitAdapter.sol) for implementation.
 
-If you prefer one over the other, you can use the tooling-specific commands:
+*TODO: Document process*
 
-```bash
-pnpm compile:forge
-pnpm compile:hardhat
-```
+2. Allowance Transaction (ERC-20)
 
-Or adjust the `package.json` to for example remove `forge` build:
+Alternatively, the `OFTPermitAdapter` supports standard ERC-20 allowances to be used for cross-chain bridging. To do so, you may use our convenient hardhat tasks.
 
-```diff
-- "compile": "$npm_execpath run compile:forge && $npm_execpath run compile:hardhat",
-- "compile:forge": "forge build",
-- "compile:hardhat": "hardhat compile",
-+ "compile": "hardhat compile"
-```
+You may use our hardhat task `token:approve` to conviently set the adapters allowance. For the JLT-B24 token on sepolia, you may do: `npx hardhat token:approve 0x8da50f4136B49Aa1d6D8cC35c7b0D9B2fA742Ad8 0xb6Bf3224abaDf4Eb56e5C5Fca465F620D2d7d7a2 --max --network sepolia` to authorize the adapter.
 
-#### Running tests
+Lastly, you can bridge for JLT from sepolia to Base sepolia using `oft:send`.
 
-Similarly to the contract compilation, we support both `hardhat` and `forge` tests. By default, the `test` command will execute both:
+### Sending JLT to Hub Bridge
 
-```bash
-pnpm test
-```
+JLT may be sent back to the origin network using `oft:send`.
 
-If you prefer one over the other, you can use the tooling-specific commands:
+### Retiring from Spoke Bridge
 
-```bash
-pnpm test:forge
-pnpm test:hardhat
-```
+> **Note:** This functionality is still under development
 
-Or adjust the `package.json` to for example remove `hardhat` tests:
-
-```diff
-- "test": "$npm_execpath test:forge && $npm_execpath test:hardhat",
-- "test:forge": "forge test",
-- "test:hardhat": "$npm_execpath hardhat test"
-+ "test": "forge test"
-```
-
-## 2) Deploying Contracts
-
-Set up deployer wallet/account:
-
-- Rename `.env.example` -> `.env`
-- Choose your preferred means of setting up your deployer wallet/account:
-
-```
-MNEMONIC="test test test test test test test test test test test junk"
-or...
-PRIVATE_KEY="0xabc...def"
-```
-
-To deploy your contracts to your desired blockchains, run the following command in your project's folder:
-
-```bash
-npx hardhat lz:deploy
-```
-
-More information about available CLI arguments can be found using the `--help` flag:
-
-```bash
-npx hardhat lz:deploy --help
-```
-
-By following these steps, you can focus more on creating innovative omnichain solutions and less on the complexities of cross-chain communication.
-
-<br></br>
-
-<p align="center">
-  Join our community on <a href="https://discord-layerzero.netlify.app/discord" style="color: #a77dff">Discord</a> | Follow us on <a href="https://twitter.com/LayerZero_Labs" style="color: #a77dff">Twitter</a>
-</p>
+To execute a retirement from an external network, a quote must first be fetched. This can be done via calling `quoteRetire` on the `JasmineOFT` contract. The quote will return the amount of native token that must be provided to the `retire` function to pay bridging fees.
