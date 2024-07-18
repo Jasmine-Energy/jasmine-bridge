@@ -6,24 +6,25 @@ pragma solidity ^0.8.24;
 //  Imports
 //  ─────────────────────────────────────────────────────────────────────────────
 
-import { OFTAdapter } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapter.sol";
-import { OApp, MessagingFee, Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
-import { OFTMsgCodec } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
-import { MessageLib } from "../utilities/MessageLib.sol";
-import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import { IJasminePool } from "../interfaces/jasmine/IJasminePool.sol";
-import { JasmineErrors } from "@jasmine-energy/pools-contracts/contracts/interfaces/errors/JasmineErrors.sol";
-
+import {OFTAdapter} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapter.sol";
+import {OApp, MessagingFee, Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
+import {OFTMsgCodec} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+import {MessageLib} from "../utilities/MessageLib.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {IJasminePool} from "../interfaces/jasmine/IJasminePool.sol";
+import {JasmineErrors} from "@jasmine-energy/pools-contracts/contracts/interfaces/errors/JasmineErrors.sol";
 
 /**
  * @title OFTPermitAdapter
  * @author Kai Aldag<kai.aldag@jasmine.energy>
- * @notice Extension of OFTAdapter that allows ERC-2612 permit allowance to be used for OFT deposits.
+ * @notice Extension of OFTAdapter that allows ERC-2612 permit allowance to be used for OFT
+ * deposits.
  * @custom:security-contact Kai Aldag<kai.aldag@jasmine.energy
  */
 contract OFTPermitAdapter is OFTAdapter, Multicall {
+
     // ──────────────────────────────────────────────────────────────────────────────
     // Libraries
     // ──────────────────────────────────────────────────────────────────────────────
@@ -62,7 +63,14 @@ contract OFTPermitAdapter is OFTAdapter, Multicall {
 
     /// @dev Permits this contract to spend the holder's inner token. This is designed
     // to be called prior to `send()` using a multicall to bypass the pre-approval tx requirement.
-    function permitInnerToken(address holder, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+    function permitInnerToken(
+        address holder,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
         IERC20Permit(address(innerToken)).permit(holder, address(this), value, deadline, v, r, s);
     }
 
@@ -84,7 +92,9 @@ contract OFTPermitAdapter is OFTAdapter, Multicall {
         if (_extraData.length != 0) {
             _executeLzMessage(_extraData);
             // QUESTION: Emit here or in _executeLzMessage?
-            emit OFTReceived(_guid, _origin.srcEid, payload.sendTo().bytes32ToAddress(), _toLD(payload.amountSD()));
+            emit OFTReceived(
+                _guid, _origin.srcEid, payload.sendTo().bytes32ToAddress(), _toLD(payload.amountSD())
+            );
         } else {
             super._lzReceive(_origin, _guid, payload, _executor, _extraData);
         }
@@ -127,4 +137,26 @@ contract OFTPermitAdapter is OFTAdapter, Multicall {
     function _withdrawJLT(address recipient, uint256 amount) internal {
         // TODO: Withdraw JLT
     }
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  Overrides
+    //  ─────────────────────────────────────────────────────────────────────────────
+
+    // function _debit(
+    //     address _from,
+    //     uint256 _amountLD,
+    //     uint256 _minAmountLD,
+    //     uint32 _dstEid
+    // ) internal virtual override returns (uint256 amountSentLD, uint256 amountReceivedLD) {
+
+    // }
+
+    function _debitView(
+        uint256 _amountLD,
+        uint256,
+        uint32
+    ) internal view virtual override returns (uint256 amountSentLD, uint256 amountReceivedLD) {
+        return (_amountLD, _amountLD);
+    }
+
 }

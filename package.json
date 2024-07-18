@@ -34,7 +34,7 @@
     "@layerzerolabs/lz-v2-utilities": "~2.1.27",
     "@layerzerolabs/prettier-config-next": "^2.1.27",
     "@layerzerolabs/solhint-config": "^2.1.27",
-    "@layerzerolabs/test-devtools-evm-foundry": "~0.2.2",
+    "@layerzerolabs/test-devtools-evm-foundry": "^0.2.8",
     "@layerzerolabs/toolbox-foundry": "~0.1.2",
     "@layerzerolabs/toolbox-hardhat": "~0.2.4",
     "@nomicfoundation/hardhat-ethers": "^3.0.5",

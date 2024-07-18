@@ -9,6 +9,7 @@ using TransientBytesLib for TransientBytes global;
 
 /// @author philogy <https://github.com/philogy>
 library TransientBytesLib {
+
     error DataTooLarge();
     error OutOfOrderSlots();
     error RangeTooLarge();
@@ -132,4 +133,5 @@ library TransientBytesLib {
             tstore(self.slot, 0)
         }
     }
+
 }

@@ -973,10 +973,10 @@
   dependencies:
     solhint "^4.0.0"
 
-"@layerzerolabs/test-devtools-evm-foundry@~0.2.2":
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/@layerzerolabs/test-devtools-evm-foundry/-/test-devtools-evm-foundry-0.2.2.tgz#3a9d1f64cddb95e4e247676f91ddd3613625e17f"
-  integrity sha512-xuGZuyjxh8VH8QTXJ35AMRPNfSoUPt0bsxmvhA8fqDcSAfH174quZ+sudeopr0WH1FwLF1G2xDbLpY4/k15cwg==
+"@layerzerolabs/test-devtools-evm-foundry@^0.2.8":
+  version "0.2.8"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/test-devtools-evm-foundry/-/test-devtools-evm-foundry-0.2.8.tgz#e2eba7652e4f69792aaec7b63d06f823ab0fb386"
+  integrity sha512-Tp9q13ERzb0IdTZt4IqisvnmP5H23cxNBInvbgjevLUWXbtZ0kiUP/6hkvgqFoesCFwBq/6Peg1EzEbxmf84Bw==
 
 "@layerzerolabs/test-devtools-evm-hardhat@~0.2.2":
   version "0.2.2"

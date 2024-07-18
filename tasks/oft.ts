@@ -4,7 +4,7 @@ import { task } from 'hardhat/config'
 
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 
-import type { HardhatRuntimeEnvironment, TaskArguments } from 'hardhat/types'
+import type { HardhatRuntimeEnvironment, HttpNetworkConfig, TaskArguments } from 'hardhat/types'
 
 const hyperlink = (url: string, text: string) => {
     const OSC = '\u001B]'
@@ -67,8 +67,7 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
             // Read token info from origin chain
             const hubNetwork = network.live ? 'polygon' : 'sepolia'
             const provider = new ethers.providers.JsonRpcProvider(
-                // @ts-ignore
-                config.networks[hubNetwork].url
+                (config.networks[hubNetwork] as HttpNetworkConfig).url
             )
             const underlyingContract = (await ethers.getContractAt('IERC20Metadata', underlying)).connect(provider)
             const name = await underlyingContract.name()
@@ -89,7 +88,6 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
             const bridgeDeployment = await deployments.get(contractName)
             const bridgeContract = await ethers.getContractAt(contractName, bridgeDeployment.address, ownerSigner)
 
-            // const tx = await bridgeContract.createOFT(underlying, name, symbol, 0, ethers.constants.HashZero)
             const tx = await bridgeContract.createOFT(underlying, name, symbol, peer)
             const result = await tx.wait()
             const oftAddress = result.events?.find((e: { event: string }) => e.event === 'OFTCreated')?.args?.at(1)
@@ -191,7 +189,10 @@ task('oft:quote:send', 'Send OFTs to another chain')
             amount *= 10 ** decimals
 
             assert(config.networks[destination].eid, 'Missing eid for destination network')
-            const eid = config.networks[destination].eid!
+            const eid = config.networks[destination].eid
+            if (!eid) {
+                throw new Error('Missing eid for destination network')
+            }
 
             const toAddress = ethers.utils.hexlify(ethers.utils.zeroPad(to ? to : signer.address, 32))
 

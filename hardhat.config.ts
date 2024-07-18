@@ -91,6 +91,7 @@ const config: HardhatUserConfig = {
             },
         },
         polygon: {
+            chainId: 137,
             eid: EndpointId.POLYGON_V2_MAINNET,
             url: process.env.RPC_URL_POLYGON || 'https://rpc.ankr.com/polygon',
             accounts,
@@ -100,6 +101,7 @@ const config: HardhatUserConfig = {
             },
         },
         base: {
+            chainId: 8453,
             eid: EndpointId.BASE_V2_MAINNET,
             url: process.env.RPC_URL_BASE || 'https://rpc.base.org',
             accounts,

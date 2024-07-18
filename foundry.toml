@@ -1,9 +1,14 @@
 [profile.default]
-solc-version = '0.8.22'
 src = 'contracts'
 out = 'out'
 test = 'test/foundry'
 cache_path = 'cache'
+
+solc-version = '0.8.24'
+via_ir = true
+evm_version = 'cancun'
+optimizer_runs = 400
+
 libs = [
     # We provide a set of useful contract utilities
     # in the lib directory of @layerzerolabs/toolbox-foundry:
@@ -20,8 +25,58 @@ remappings = [
     # of forge-std is being dragged in
     # 
     # To remedy this, we'll remap the ds-test and forge-std imports to ou own versions
+    'src/=contracts/',
     'ds-test/=node_modules/@layerzerolabs/toolbox-foundry/lib/ds-test',
     'forge-std/=node_modules/@layerzerolabs/toolbox-foundry/lib/forge-std',
     '@layerzerolabs/=node_modules/@layerzerolabs/',
+    '@layerzerolabs/test-devtools-evm-foundry/=node_modules/@layerzerolabs/test-devtools-evm-foundry/',
     '@openzeppelin/=node_modules/@openzeppelin/',
 ]
+
+verbosity = 3
+show_progress = true
+
+[fuzz]
+runs = 512
+
+[profile.ci.fuzz]
+runs = 1024
+
+[fmt]
+multiline_func_header = 'params_first'
+contract_new_lines = true
+line_length = 110
+int_types = 'long'
+quote_style = 'double'
+number_underscore = 'thousands'
+wrap_comments = true
+
+[etherscan]
+polygon = { key = "${POLYSCAN_API_KEY}", chain = "polygon", url = "https://api.polygonscan.com/" }
+base = { key = "${BASESCAN_API_KEY}", chain = "base", url = "https://api.basescan.org/" }
+sepolia = { key = "${ETHERSCAN_API_KEY}", chain = "sepolia", url = "https://api-sepolia.etherscan.io/" }
+baseSepolia = { key = "${BASESCAN_API_KEY}", chain = 84532, url = "https://api-sepolia.basescan.org/" }
+# amoy =  { key = "${POLYSCAN_API_KEY}", chain = "amoy",  url = "https://api-testnet.polygonscan.com/" }
+
+[rpc_endpoints]
+local = "http://127.0.0.1:8545/"
+sepolia = "${RPC_URL_SEPOLIA}"
+baseSepolia = "${RPC_URL_BASESEP}"
+# amoy = "${RPC_URL_AMOY}"
+polygon = "${RPC_URL_POLYGON}"
+base = "${RPC_URL_BASE}"
+
+[profile.local]
+chain_id = 31337
+
+[profile.sepolia]
+chain_id = 11155111
+
+[profile.baseSepolia]
+chain_id = 84532
+
+[profile.base]
+chain_id = 8453
+
+[profile.polygon]
+chain_id = 137
