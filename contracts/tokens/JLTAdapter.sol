@@ -16,14 +16,15 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {IJasminePool} from "../interfaces/jasmine/IJasminePool.sol";
 import {JasmineErrors} from "@jasmine-energy/pools-contracts/contracts/interfaces/errors/JasmineErrors.sol";
 
+
 /**
- * @title OFTPermitAdapter
+ * @title JLT Adapter
  * @author Kai Aldag<kai.aldag@jasmine.energy>
- * @notice Extension of OFTAdapter that allows ERC-2612 permit allowance to be used for OFT
- * deposits.
+ * @notice Modified OFTAdapter (from LayerZero) enabling ERC-2612 allowance signatures
+ * as well as custom cross-chain retirement logic.
  * @custom:security-contact Kai Aldag<kai.aldag@jasmine.energy
  */
-contract OFTPermitAdapter is OFTAdapter, Multicall {
+contract JLTAdapter is OFTAdapter, Multicall {
 
     // ──────────────────────────────────────────────────────────────────────────────
     // Libraries

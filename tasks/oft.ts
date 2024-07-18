@@ -169,13 +169,13 @@ task('oft:quote:send', 'Send OFTs to another chain')
 
             let contractName: string
             if (currentNetwork.name === 'polygon' || currentNetwork.name === 'sepolia') {
-                contractName = 'OFTPermitAdapter'
+                contractName = 'JLTAdapter'
                 if (!destination) {
                     destination = config.networks[currentNetwork.name].companionNetworks?.spoke
                     assert(destination, 'Missing spoke network')
                 }
             } else if (currentNetwork.name === 'base' || currentNetwork.name === 'baseSepolia') {
-                contractName = 'JasmineOFT'
+                contractName = 'OJLT'
                 if (!destination) {
                     destination = config.networks[currentNetwork.name].companionNetworks?.hub
                     assert(destination, 'Missing hub network')
@@ -185,7 +185,7 @@ task('oft:quote:send', 'Send OFTs to another chain')
             }
 
             const oftContract = await ethers.getContractAt(contractName, oft, signer)
-            const decimals = contractName === 'JasmineOFT' ? await oftContract.decimals() : 6
+            const decimals = contractName === 'OJLT' ? await oftContract.decimals() : 6
             amount *= 10 ** decimals
 
             assert(config.networks[destination].eid, 'Missing eid for destination network')
@@ -224,13 +224,13 @@ task('oft:send', 'Send OFTs to another chain')
 
             let contractName: string
             if (currentNetwork.name === 'polygon' || currentNetwork.name === 'sepolia') {
-                contractName = 'OFTPermitAdapter'
+                contractName = 'JLTAdapter'
                 if (!destination) {
                     destination = config.networks[currentNetwork.name].companionNetworks?.spoke
                     assert(destination, 'Missing spoke network')
                 }
             } else if (currentNetwork.name === 'base' || currentNetwork.name === 'baseSepolia') {
-                contractName = 'JasmineOFT'
+                contractName = 'OJLT'
                 if (!destination) {
                     destination = config.networks[currentNetwork.name].companionNetworks?.hub
                     assert(destination, 'Missing hub network')
@@ -253,7 +253,7 @@ task('oft:quote:retire', 'Get quote for retiring OFT')
         const { owner } = await getNamedAccounts()
         const signer = await ethers.getSigner(owner)
 
-        const contractName = 'JasmineOFT'
+        const contractName = 'OJLT'
         const oftContract = await ethers.getContractAt(contractName, oft, signer)
 
         const quote = await oftContract.quoteRetire()
@@ -276,7 +276,7 @@ task('oft:retire', 'Retire OFT')
             const { owner } = await getNamedAccounts()
             const signer = await ethers.getSigner(from ? from : owner)
 
-            const contractName = 'JasmineOFT'
+            const contractName = 'OJLT'
             const oftContract = await ethers.getContractAt(contractName, oft, signer)
             const decimals = await oftContract.decimals()
             amount *= 10 ** decimals

@@ -7,7 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {OApp, MessagingFee, Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import {MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {IOFTDeployer} from "./interfaces/IOFTDeployer.sol";
-import {JasmineOFT} from "./extensions/JasmineOFT.sol";
+import {OJLT} from "./tokens/OJLT.sol";
 import {BytesLib} from "./utilities/BytesLib.sol";
 import {Create3} from "@0xsequence/create3/contracts/Create3.sol";
 import {TransientBytesLib, TransientBytes} from "./utilities/TransientBytesLib.sol";
@@ -77,7 +77,7 @@ contract JasmineSpokeBridge is OApp, IOFTDeployer {
     }
 
     function setOFTPeer(address _oft, uint32 _eid, bytes32 _peer) external onlyOwner {
-        JasmineOFT(_oft).setPeer(_eid, _peer);
+        OJLT(_oft).setPeer(_eid, _peer);
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ contract JasmineSpokeBridge is OApp, IOFTDeployer {
     }
 
     function _encodeOFTCreationCode() private view returns (bytes memory) {
-        return abi.encodePacked(type(JasmineOFT).creationCode, abi.encode(address(this)));
+        return abi.encodePacked(type(OJLT).creationCode, abi.encode(address(this)));
     }
 
 }

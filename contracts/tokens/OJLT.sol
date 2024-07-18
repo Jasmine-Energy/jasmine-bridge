@@ -19,7 +19,15 @@ import {BytesLib} from "../utilities/BytesLib.sol";
 import {MessageLib} from "../utilities/MessageLib.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract JasmineOFT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
+
+/**
+ * @title Omnichain Jasmine Liquidity Token (OJLT)
+ * @author Kai Aldag<kai.aldag@jasmine.energy>
+ * @notice JLT implementing LayerZero's Omnichain Fungible Token (OFT) interface
+ * allowing JLT to be bridged and retired between chains.
+ * @custom:security-contact Kai Aldag<kai.aldag@jasmine.energy
+ */
+contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
 
     using BytesLib for bytes32;
     using OptionsBuilder for bytes;

@@ -8,10 +8,10 @@ import {MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.so
 import {MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
-import {JasmineHubBridge} from "src/JasmineHubBridge.sol";
-import {JasmineSpokeBridge} from "src/JasmineSpokeBridge.sol";
-import {JasmineOFT} from "src/extensions/JasmineOFT.sol";
-import {OFTPermitAdapter} from "src/extensions/OFTPermitAdapter.sol";
+import {JasmineHubBridge} from "src/HubBridge.sol";
+import {JasmineSpokeBridge} from "src/SpokeBridge.sol";
+import {OJLT} from "src/tokens/OJLT.sol";
+import {JLTAdapter} from "src/tokens/JLTAdapter.sol";
 
 import "forge-std/console.sol";
 

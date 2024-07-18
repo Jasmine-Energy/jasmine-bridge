@@ -6,7 +6,7 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {OApp, MessagingFee, Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import {MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
-import {OFTPermitAdapter} from "./extensions/OFTPermitAdapter.sol";
+import {JLTAdapter} from "./tokens/JLTAdapter.sol";
 import {BytesLib} from "./utilities/BytesLib.sol";
 import {Create3} from "@0xsequence/create3/contracts/Create3.sol";
 
@@ -59,7 +59,7 @@ contract JasmineHubBridge is OApp {
     }
 
     function setAdapterPeer(address _adapter, uint32 _eid, bytes32 _peer) external onlyOwner {
-        OFTPermitAdapter(_adapter).setPeer(_eid, _peer);
+        JLTAdapter(_adapter).setPeer(_eid, _peer);
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ contract JasmineHubBridge is OApp {
 
     function encodeAdapterCreationCode(address underlying) private view returns (bytes memory) {
         return abi.encodePacked(
-            type(OFTPermitAdapter).creationCode, abi.encode(underlying, endpoint, address(this))
+            type(JLTAdapter).creationCode, abi.encode(underlying, endpoint, address(this))
         );
     }
 

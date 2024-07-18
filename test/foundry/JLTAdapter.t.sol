@@ -10,10 +10,10 @@ import {MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAp
 import {IOAppCore} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces/IOAppCore.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
-import {JasmineHubBridge} from "src/JasmineHubBridge.sol";
-import {JasmineSpokeBridge} from "src/JasmineSpokeBridge.sol";
-import {JasmineOFT} from "src/extensions/JasmineOFT.sol";
-import {OFTPermitAdapter} from "src/extensions/OFTPermitAdapter.sol";
+import {JasmineHubBridge} from "src/HubBridge.sol";
+import {JasmineSpokeBridge} from "src/SpokeBridge.sol";
+import {OJLT} from "src/tokens/OJLT.sol";
+import {JLTAdapter} from "src/tokens/JLTAdapter.sol";
 import {BytesLib} from "src/utilities/BytesLib.sol";
 
 import {MockJLT} from "src/mocks/MockJLT.sol";
@@ -43,8 +43,8 @@ contract JLTAdapterTest is TestHelperOz5 {
     JasmineSpokeBridge spokeBridge;
 
     MockJLT underlying;
-    OFTPermitAdapter adapter;
-    JasmineOFT ojlt;
+    JLTAdapter adapter;
+    OJLT ojlt;
 
     uint128 constant SEND_GAS_LIMIT = 150_000;
 
@@ -120,12 +120,12 @@ contract JLTAdapterTest is TestHelperOz5 {
 
     function _createAdapter() private {
         vm.prank(owner);
-        adapter = OFTPermitAdapter(hubBridge.createAdapter(address(underlying)));
+        adapter = JLTAdapter(hubBridge.createAdapter(address(underlying)));
     }
 
     function _createOJLT() private {
         vm.startPrank(owner);
-        ojlt = JasmineOFT(
+        ojlt = OJLT(
             spokeBridge.createOFT(
                 address(underlying), underlying.name(), underlying.symbol(), address(adapter).toBytes32()
             )
