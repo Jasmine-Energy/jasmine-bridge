@@ -3,12 +3,15 @@
 pragma solidity ^0.8.24;
 
 import {OFT} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFT.sol";
+import {OFTCore} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
+import {OAppSender} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {
     SendParam,
     MessagingFee,
     MessagingReceipt,
     OFTReceipt
 } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import {IOAppMsgInspector} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces/IOAppMsgInspector.sol";
 import {OptionsBuilder} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import {OFTMsgCodec} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
 import {IOFTDeployer} from "../interfaces/IOFTDeployer.sol";
@@ -31,6 +34,7 @@ contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
 
     using BytesLib for bytes32;
     using OptionsBuilder for bytes;
+    using MessageLib for SendParam;
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Fields
@@ -44,6 +48,12 @@ contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
     //  ─────────────────────────────────────────────────────────────────────────────
 
     error InvalidInput();
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  Events
+    //  ─────────────────────────────────────────────────────────────────────────────
+
+    event Retire(address indexed from, address indexed beneficiary, uint256 amount);
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Setup
@@ -61,6 +71,79 @@ contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
     {
         _setPeer(IOFTDeployer(owner).getRootEid(), IOFTDeployer(owner).getRootPeer());
     }
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  OFT Overrides
+    //  ─────────────────────────────────────────────────────────────────────────────
+
+    /// @inheritdoc OFTCore
+    function _buildMsgAndOptions(
+        SendParam calldata _sendParam,
+        uint256 _amountLD
+    ) internal view virtual override returns (bytes memory message, bytes memory options) {
+        if (_sendParam.hasCommand()) {
+            // QUESTION: Consider enforcing params' compose field is empty - as it cannot be used when a command is present.
+
+            (bool isValid, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(_sendParam.oftCmd);
+            if (!isValid) revert MessageLib.InvalidMessageType(_sendParam.oftCmd[0]);
+
+            if (messageType == MessageLib.MessageType.RETIREMENT) {
+                bytes memory reasonData = MessageLib.decodeRetireCommandReason(_sendParam.oftCmd);
+                message = MessageLib._encodeRetirementMessage(_sendParam.to.toAddress(), _toSD(_amountLD), reasonData);
+            } else {
+                // TODO: Implement withdrawal commands
+                revert MessageLib.InvalidMessageType(_sendParam.oftCmd[0]);
+            }
+            options = combineOptions(_sendParam.dstEid, SEND, _sendParam.extraOptions);
+            if (msgInspector != address(0)) IOAppMsgInspector(msgInspector).inspect(message, options);
+        } else {
+            (message, options) = super._buildMsgAndOptions(_sendParam, _amountLD);
+        }
+    }
+
+    /// @inheritdoc OAppSender
+    function _lzSend(
+        uint32 _dstEid,
+        bytes memory _message,
+        bytes memory _options,
+        MessagingFee memory _fee,
+        address _refundAddress
+    ) internal virtual override returns (MessagingReceipt memory receipt) {
+        (bool isValidCmd, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(_message);
+        if (isValidCmd && messageType == MessageLib.MessageType.RETIREMENT) {
+            (address beneficiary, uint256 amount, bytes memory data) = MessageLib._decodeRetirementMessage(_message);
+            emit Retire(msg.sender, beneficiary, amount);
+        }
+
+        return super._lzSend(_dstEid, _message, _options, _fee, _refundAddress);
+    }
+
+
+    // function send(
+    //     SendParam calldata _sendParam,
+    //     MessagingFee calldata _fee,
+    //     address _refundAddress
+    // ) external payable virtual override returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
+
+    //     super.
+    // }
+
+    // function _send(
+    //     SendParam calldata _sendParam,
+    //     MessagingFee calldata _fee,
+    //     address _refundAddress
+    // ) internal virtual returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
+    //     (uint256 amountSentLD, uint256 amountReceivedLD) = _debit(
+    //         msg.sender,
+    //         _sendParam.amountLD,
+    //         _sendParam.minAmountLD,
+    //         _sendParam.dstEid
+    //     );
+    //     (bytes memory message, bytes memory options) = _buildMsgAndOptions(_sendParam, amountReceivedLD);
+    //     msgReceipt = _lzSend(_sendParam.dstEid, message, options, _fee, _refundAddress);
+    //     oftReceipt = OFTReceipt(amountSentLD, amountReceivedLD);
+    //     emit OFTSent(msgReceipt.guid, _sendParam.dstEid, msg.sender, amountSentLD, amountReceivedLD);
+    // }
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Retireable Pool Functions

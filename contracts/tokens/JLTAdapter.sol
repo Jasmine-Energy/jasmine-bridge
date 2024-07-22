@@ -89,15 +89,16 @@ contract JLTAdapter is OFTAdapter, Multicall {
         address _executor,
         bytes calldata _extraData
     ) internal override {
-        // NOTE: If extra data provided, parse and execute operation
-        if (_extraData.length != 0) {
-            _executeLzMessage(_extraData);
-            // QUESTION: Emit here or in _executeLzMessage?
-            emit OFTReceived(
-                _guid, _origin.srcEid, payload.sendTo().bytes32ToAddress(), _toLD(payload.amountSD())
-            );
-        } else {
+        (bool isValid, MessageLib.MessageType operation) = payload._decodeMessageType();
+        if (!isValid) revert MessageLib.InvalidMessageType(payload[0]);
+
+        if (operation == MessageLib.MessageType.SEND || operation == MessageLib.MessageType.SEND_AND_CALL) {
             super._lzReceive(_origin, _guid, payload, _executor, _extraData);
+        } else if (operation == MessageLib.MessageType.RETIREMENT) {
+            (address beneficiary, uint256 amount, bytes memory data) = payload._decodeRetirementMessage();
+            _retireJLT(beneficiary, amount, data);
+        } else {
+            revert MessageLib.InvalidMessageType(payload[0]);
         }
     }
 
@@ -111,9 +112,7 @@ contract JLTAdapter is OFTAdapter, Multicall {
         (bool isValid, MessageLib.MessageType operation) = message._decodeMessageType();
         if (!isValid) revert MessageLib.InvalidMessageType(message[0]);
 
-        if (operation == MessageLib.MessageType.TRANSFER) {
-            // TODO: Implement
-        } else if (operation == MessageLib.MessageType.RETIREMENT) {
+        if (operation == MessageLib.MessageType.RETIREMENT) {
             (address beneficiary, uint256 amount, bytes memory data) = message._decodeRetirementMessage();
             _retireJLT(beneficiary, amount, data);
         } else if (operation == MessageLib.MessageType.WITHDRAW_ANY) {
@@ -131,26 +130,13 @@ contract JLTAdapter is OFTAdapter, Multicall {
         IJasminePool(address(innerToken)).retire(address(this), beneficiary, amount, data);
     }
 
-    function _transferJLT(address recipient, uint256 amount) internal {
-        // TODO: Transfer JLT
-    }
-
-    function _withdrawJLT(address recipient, uint256 amount) internal {
+    function _withdrawAny(address recipient, uint256 amount) internal {
         // TODO: Withdraw JLT
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Overrides
     //  ─────────────────────────────────────────────────────────────────────────────
-
-    // function _debit(
-    //     address _from,
-    //     uint256 _amountLD,
-    //     uint256 _minAmountLD,
-    //     uint32 _dstEid
-    // ) internal virtual override returns (uint256 amountSentLD, uint256 amountReceivedLD) {
-
-    // }
 
     function _debitView(
         uint256 _amountLD,

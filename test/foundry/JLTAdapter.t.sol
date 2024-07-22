@@ -203,6 +203,20 @@ contract JLTAdapterTest is TestHelperOz5 {
         hubBridge.setAdapterPeer(address(adapter), destinationEid, address(ojlt).toBytes32());
     }
 
+    function test_deployOJLT() public adapterDeployed {
+        address expected = spokeBridge.predictOFTAddress(address(underlying));
+
+        vm.expectEmit(address(spokeBridge));
+        emit JasmineSpokeBridge.OFTCreated(address(underlying), expected);
+
+        vm.startPrank(owner);
+        address deployedOJLT = spokeBridge.createOFT(address(underlying), underlying.name(), underlying.symbol(), address(adapter).toBytes32());
+        vm.stopPrank();
+
+        assertEq(deployedOJLT, expected, "Address should match predicted address");
+        assertEq(OJLT(deployedOJLT).peers(originEid), address(adapter).toBytes32(), "OJLT should have origin peer set");
+    }
+
     //  ────────────────────────────  Conversion Tests  ───────────────────────────────  \\
 
     function test_localDecimals() public configured {
@@ -217,6 +231,7 @@ contract JLTAdapterTest is TestHelperOz5 {
 
     function test_send(uint256 amount) public configured {
         // NOTE: LZ encodes amount to 64 bits of precision. Amount must be less than 2^64 - 1.
+        // TODO: Add check in both adapter and OJLT to ensure amount is less than 2^64 - 1.
         amount = bound(amount, 1, type(uint64).max - 1);
 
         uint256 userBalanceBefore = underlying.balanceOf(user1);
@@ -258,20 +273,26 @@ contract JLTAdapterTest is TestHelperOz5 {
         amount = bound(amount, 1, type(uint64).max - 1);
         _mintAndBridge(user1, amount);
 
+        bytes memory reasonData = "";
         uint256 userBalanceBefore = ojlt.balanceOf(user1);
 
         bytes memory options = OptionsBuilder
             .newOptions()
             .addExecutorLzReceiveOption(SEND_GAS_LIMIT, 0);
             // .addExecutorLzComposeOption(0, 100_000, 0);
-        bytes memory retireMessage = MessageLib._encodeRetirementMessage(user2, amount, "");
+        // bytes memory retireMessage = MessageLib._encodeRetirementMessage(user1, amount, "");
+        bytes memory retiremCommand = MessageLib.encodeRetirementCommand(reasonData);
 
         SendParam memory params =
-            SendParam(destinationEid, user1.toBytes32(), amount, amount, options, "", retireMessage);
-        MessagingFee memory fee = adapter.quoteSend(params, false);
+            SendParam(originEid, user1.toBytes32(), amount, amount, options, "", retiremCommand);
+        MessagingFee memory fee = ojlt.quoteSend(params, false);
 
         vm.prank(user1);
-        ojlt.retire(user1, user1, amount, "");
+        ojlt.send{value: fee.nativeFee}(params, fee, user1);
+        // ojlt.retire{value: fee.nativeFee}(user1, user1, amount, "");
+
+        // Execute delivery on destination chain
+        verifyPackets(originEid, address(adapter).toBytes32());
     }
 
 }

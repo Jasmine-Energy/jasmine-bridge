@@ -57,7 +57,7 @@ contract MessageLibTest is Test {
 
         (bool isValid, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(message);
         assertTrue(isValid, "Message should be valid");
-        assertEq(uint(messageType), uint(MessageLib.MessageType.TRANSFER), "Message type should be TRANSFER");
+        assertEq(uint(messageType), uint(MessageLib.MessageType.SEND), "Message type should be TRANSFER");
 
         (address decodedRecipient, uint256 decodedAmount) = MessageLib._decodeTransferMessage(message);
         assertEq(decodedRecipient, recipient, "Message recipient should be correct");
