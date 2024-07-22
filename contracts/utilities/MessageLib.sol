@@ -2,7 +2,11 @@
 
 pragma solidity ^0.8.20;
 
+import {BytesLib as SolByteLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
+
 library MessageLib {
+
+    using SolByteLib for bytes;
 
     // ──────────────────────────────────────────────────────────────────────────────
     // Errors
@@ -35,7 +39,7 @@ library MessageLib {
     function _encodeRetirementMessage(
         address beneficiary,
         uint256 amount,
-        bytes calldata data
+        bytes memory data
     ) internal pure returns (bytes memory message) {
         return abi.encodePacked(MessageType.RETIREMENT, beneficiary, amount, data);
     }
@@ -47,16 +51,11 @@ library MessageLib {
         return abi.encodePacked(MessageType.WITHDRAW_ANY, recipient, amount);
     }
 
-    // function _encodeWithdrawSpecificMessage(address recipient, uint256 amount, uint256[] calldata
-    // tokenIds) internal pure returns (bytes memory message) {
-    //     return abi.encodePacked(MessageType.WITHDRAW_SPECIFIC, recipient, amount, tokenIds);
-    // }
-
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Decoding Functions
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    function _decodeMessageType(bytes calldata message)
+    function _decodeMessageType(bytes memory message)
         internal
         pure
         returns (bool isValidType, MessageType messageType)
@@ -65,32 +64,33 @@ library MessageLib {
         if (isValidType) messageType = MessageType(uint8(message[0]));
     }
 
-    function _decodeTransferMessage(bytes calldata message)
+    function _decodeTransferMessage(bytes memory message)
         internal
         pure
         returns (address recipient, uint256 amount)
     {
-        recipient = abi.decode(message[1:33], (address));
-        amount = abi.decode(message[33:], (uint256));
+        recipient = message.toAddress(1);
+        amount = message.toUint256(21);
     }
 
-    function _decodeRetirementMessage(bytes calldata message)
+    function _decodeRetirementMessage(bytes memory message)
         internal
         pure
         returns (address beneficiary, uint256 amount, bytes memory data)
     {
-        beneficiary = abi.decode(message[1:33], (address));
-        amount = abi.decode(message[33:65], (uint256));
-        data = abi.decode(message[65:], (bytes));
+        beneficiary = message.toAddress(1);
+        amount = message.toUint256(21);
+        if (message.length > 53) data = message.slice(53, message.length - 53);
+        else data = "";
     }
 
-    function _decodeWithdrawAnyMessage(bytes calldata message)
+    function _decodeWithdrawAnyMessage(bytes memory message)
         internal
         pure
         returns (address recipient, uint256 amount)
     {
-        recipient = abi.decode(message[1:33], (address));
-        amount = abi.decode(message[33:], (uint256));
+        recipient = message.toAddress(1);
+        amount = message.toUint256(21);
     }
 
 }

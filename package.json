@@ -55,7 +55,7 @@
     "mocha": "^10.2.0",
     "prettier": "^3.2.5",
     "solhint": "^4.1.1",
-    "solidity-bytes-utils": "^0.8.2",
+    "solidity-bytes-utils": "0.8.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },

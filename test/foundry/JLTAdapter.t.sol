@@ -15,6 +15,7 @@ import {JasmineSpokeBridge} from "src/SpokeBridge.sol";
 import {OJLT} from "src/tokens/OJLT.sol";
 import {JLTAdapter} from "src/tokens/JLTAdapter.sol";
 import {BytesLib} from "src/utilities/BytesLib.sol";
+import {MessageLib} from "src/utilities/MessageLib.sol";
 
 import {MockJLT} from "src/mocks/MockJLT.sol";
 
@@ -202,10 +203,21 @@ contract JLTAdapterTest is TestHelperOz5 {
         hubBridge.setAdapterPeer(address(adapter), destinationEid, address(ojlt).toBytes32());
     }
 
+    //  ────────────────────────────  Conversion Tests  ───────────────────────────────  \\
+
+    function test_localDecimals() public configured {
+        assertEq(adapter.decimalConversionRate(), 1);
+        assertEq(ojlt.decimalConversionRate(), 1);
+
+        assertEq(underlying.decimals(), 6);
+        assertEq(ojlt.decimals(), 6);
+    }
+
     //  ────────────────────────────────  Send Tests  ─────────────────────────────────  \\
 
     function test_send(uint256 amount) public configured {
-        amount = bound(amount, 1, type(uint256).max / (10 ** 18));
+        // NOTE: LZ encodes amount to 64 bits of precision. Amount must be less than 2^64 - 1.
+        amount = bound(amount, 1, type(uint64).max - 1);
 
         uint256 userBalanceBefore = underlying.balanceOf(user1);
         uint256 adapterBalanceBefore = underlying.balanceOf(address(adapter));
@@ -229,6 +241,7 @@ contract JLTAdapterTest is TestHelperOz5 {
             underlying.balanceOf(address(adapter)),
             "Adapter should receive bridged JLT"
         );
+        assertEq(oftReceipt.amountSentLD, oftReceipt.amountReceivedLD, "Sent and received amounts should be equal in receipt");
 
         userBalanceBefore = ojlt.balanceOf(user1);
 
@@ -241,9 +254,24 @@ contract JLTAdapterTest is TestHelperOz5 {
         assertEq(userBalanceBefore + jltAmount, ojlt.balanceOf(user1), "User should receive bridged JLT");
     }
 
-    // function test_retire(uint256 amount) public {
-    //     amount = bound(amount, 1, type(uint256).max / (10 ** 18));
-    //     _mintAndBridge(user1, amount);
-    // }
+    function test_retire(uint256 amount) public configured {
+        amount = bound(amount, 1, type(uint64).max - 1);
+        _mintAndBridge(user1, amount);
+
+        uint256 userBalanceBefore = ojlt.balanceOf(user1);
+
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(SEND_GAS_LIMIT, 0);
+            // .addExecutorLzComposeOption(0, 100_000, 0);
+        bytes memory retireMessage = MessageLib._encodeRetirementMessage(user2, amount, "");
+
+        SendParam memory params =
+            SendParam(destinationEid, user1.toBytes32(), amount, amount, options, "", retireMessage);
+        MessagingFee memory fee = adapter.quoteSend(params, false);
+
+        vm.prank(user1);
+        ojlt.retire(user1, user1, amount, "");
+    }
 
 }
