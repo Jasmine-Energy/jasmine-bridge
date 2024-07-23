@@ -10,6 +10,9 @@ import {MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAp
 import {IOAppCore} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces/IOAppCore.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IJasmineRetireablePool as IRetireablePool} from "src/interfaces/jasmine/IRetireablePool.sol";
+
 import {JasmineHubBridge} from "src/HubBridge.sol";
 import {JasmineSpokeBridge} from "src/SpokeBridge.sol";
 import {OJLT} from "src/tokens/OJLT.sol";
@@ -269,7 +272,7 @@ contract JLTAdapterTest is TestHelperOz5 {
         assertEq(userBalanceBefore + jltAmount, ojlt.balanceOf(user1), "User should receive bridged JLT");
     }
 
-    function test_retire(uint256 amount) public configured {
+    function test_retireViaSend(uint256 amount) public configured {
         amount = bound(amount, 1, type(uint64).max - 1);
         _mintAndBridge(user1, amount);
 
@@ -279,20 +282,63 @@ contract JLTAdapterTest is TestHelperOz5 {
         bytes memory options = OptionsBuilder
             .newOptions()
             .addExecutorLzReceiveOption(SEND_GAS_LIMIT, 0);
-            // .addExecutorLzComposeOption(0, 100_000, 0);
-        // bytes memory retireMessage = MessageLib._encodeRetirementMessage(user1, amount, "");
-        bytes memory retiremCommand = MessageLib.encodeRetirementCommand(reasonData);
+        bytes memory retireCommand = MessageLib.encodeRetirementCommand(reasonData);
 
         SendParam memory params =
-            SendParam(originEid, user1.toBytes32(), amount, amount, options, "", retiremCommand);
+            SendParam(originEid, user1.toBytes32(), amount, amount, options, "", retireCommand);
         MessagingFee memory fee = ojlt.quoteSend(params, false);
+
+        vm.expectEmit(address(ojlt));
+        emit IERC20.Transfer(user1, address(0), amount);
+        vm.expectEmit(address(ojlt));
+        emit OJLT.Retire(user1, user1, amount);
 
         vm.prank(user1);
         ojlt.send{value: fee.nativeFee}(params, fee, user1);
-        // ojlt.retire{value: fee.nativeFee}(user1, user1, amount, "");
+
+        // NOTE: These aren't working as expected due to verify packets numerous steps
+        // vm.expectEmit(address(underlying));
+        // emit IERC20.Transfer(address(adapter), address(0), amount);
+        // vm.expectEmit(address(underlying));
+        // emit IRetireablePool.Retirement(address(adapter), user1, amount);
 
         // Execute delivery on destination chain
         verifyPackets(originEid, address(adapter).toBytes32());
     }
 
+    function test_retire(uint256 amount) public configured {
+        amount = bound(amount, 1, type(uint64).max - 1);
+        _mintAndBridge(user1, amount);
+
+        bytes memory reasonData = "";
+
+        uint256 retireFee = ojlt.quoteRetire(reasonData.length);
+
+        vm.expectEmit(address(ojlt));
+        emit IERC20.Transfer(user1, address(0), amount);
+        vm.expectEmit(address(ojlt));
+        emit OJLT.Retire(user1, user1, amount);
+
+        vm.prank(user1);
+        (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) =
+            ojlt.retire{value: retireFee}(user1, user1, amount, reasonData);
+
+        // vm.expectEmit(address(underlying));
+        // emit IERC20.Transfer(address(adapter), address(0), amount);
+        // vm.expectEmit(address(underlying));
+        // emit IRetireablePool.Retirement(address(adapter), user1, amount);
+
+        // Execute delivery on destination chain
+        verifyPackets(originEid, address(adapter).toBytes32());
+    }
+
+
+    //  ────────────────────────────────  Owner Tests  ─────────────────────────────────  \\
+
+    function test_setGasLimit(uint128 gasLimit) public configured {
+        vm.prank(owner);
+        spokeBridge.setDefaultRetireGasLimit(address(ojlt), gasLimit);
+
+        assertEq(ojlt.retireGasLimit(), gasLimit);
+    }
 }

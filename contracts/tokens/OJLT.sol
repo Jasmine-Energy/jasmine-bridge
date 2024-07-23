@@ -32,6 +32,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  */
 contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
 
+    using BytesLib for address;
     using BytesLib for bytes32;
     using OptionsBuilder for bytes;
     using MessageLib for SendParam;
@@ -40,7 +41,6 @@ contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
     //  Fields
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    uint16 public retirementFeeBips = 0;
     uint128 public retireGasLimit = 200_000;
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -118,44 +118,20 @@ contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
         return super._lzSend(_dstEid, _message, _options, _fee, _refundAddress);
     }
 
-
-    // function send(
-    //     SendParam calldata _sendParam,
-    //     MessagingFee calldata _fee,
-    //     address _refundAddress
-    // ) external payable virtual override returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
-
-    //     super.
-    // }
-
-    // function _send(
-    //     SendParam calldata _sendParam,
-    //     MessagingFee calldata _fee,
-    //     address _refundAddress
-    // ) internal virtual returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
-    //     (uint256 amountSentLD, uint256 amountReceivedLD) = _debit(
-    //         msg.sender,
-    //         _sendParam.amountLD,
-    //         _sendParam.minAmountLD,
-    //         _sendParam.dstEid
-    //     );
-    //     (bytes memory message, bytes memory options) = _buildMsgAndOptions(_sendParam, amountReceivedLD);
-    //     msgReceipt = _lzSend(_sendParam.dstEid, message, options, _fee, _refundAddress);
-    //     oftReceipt = OFTReceipt(amountSentLD, amountReceivedLD);
-    //     emit OFTSent(msgReceipt.guid, _sendParam.dstEid, msg.sender, amountSentLD, amountReceivedLD);
-    // }
-
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Retireable Pool Functions
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    function quoteRetire() public view returns (MessagingFee memory fee) {
-        fee = _quote(
+    function quoteRetire(uint256 reasonLength) public view returns (uint256 nativeFee) {
+        bytes memory message = MessageLib._encodeRetirementMessage(address(0), 1, new bytes(reasonLength));
+        bytes memory options = _buildDefaultGasOptions();
+
+        nativeFee = _quote(
             _getRootEid(),
-            "",
-            OptionsBuilder.newOptions().addExecutorLzReceiveOption(retireGasLimit, 0),
+            message,
+            options,
             false // Pay in lz token
-        );
+        ).nativeFee;
     }
 
     /**
@@ -174,42 +150,18 @@ contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
         bytes calldata data
     ) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
         if (from != msg.sender) _spendAllowance(from, msg.sender, amount);
-
-        (uint256 amountSentLD, uint256 amountReceivedLD) =
-            _debit(from, amount, _calculateMinRetireLD(amount), _getRootEid());
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(retireGasLimit, 0);
-        SendParam memory sendParams = SendParam({
-            dstEid: _getRootEid(),
-            to: _getRootPeerBytes(),
-            amountLD: amountSentLD,
-            minAmountLD: amountReceivedLD,
-            extraOptions: options,
-            composeMsg: "",
-            oftCmd: MessageLib._encodeRetirementMessage(beneficiary, amount, data)
-        });
-
-        MessagingFee memory fee = _quote(
-            sendParams.dstEid,
-            sendParams.composeMsg,
-            options,
-            false // Pay in lz token
+        _debit(
+            from,
+            amount,
+            amount,
+            _getRootEid()
         );
 
-        // If msg.value is less than native, check quote for lz token, else revert
-        if (msg.value < fee.nativeFee) {
-            fee = _quote(sendParams.dstEid, sendParams.composeMsg, options, true);
-            if (msg.value < fee.nativeFee) revert NotEnoughNative(msg.value);
-        }
+        bytes memory message = MessageLib._encodeRetirementMessage(beneficiary, _toSD(amount), data);
+        bytes memory options = _buildDefaultGasOptions();
+        MessagingFee memory fee = MessagingFee(msg.value, 0);
 
-        // NOTE: See OFTMsgCodec.encode. As no composed message is included, simple encode the to
-        // and amount.
-        bytes memory message = abi.encodePacked(sendParams.to, _toSD(amountReceivedLD));
-
-        // NOTE: Because we have no enforced options, we can simply pass the options as is.
-        msgReceipt = _lzSend(sendParams.dstEid, message, options, fee, msg.sender);
-        oftReceipt = OFTReceipt(amountSentLD, amountReceivedLD);
-
-        emit OFTSent(msgReceipt.guid, sendParams.dstEid, from, amountSentLD, amountReceivedLD);
+        msgReceipt = _lzSend(_getRootEid(), message, options, fee, msg.sender);
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -240,26 +192,31 @@ contract OJLT is OFT, ERC20Permit /*, IJasmineRetireablePool */ {
         retireGasLimit = _retireGasLimit;
     }
 
-    function setRetirementFeeBips(uint16 _retirementFeeBips) external onlyOwner {
-        if (_retirementFeeBips > 1000) revert InvalidInput();
-        retirementFeeBips = _retirementFeeBips;
-    }
-
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Internal Utilities
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    function _calculateMinRetireLD(uint256 amount) internal view returns (uint256 minAmountLD) {
-        if (retirementFeeBips > 0) {
-            minAmountLD = Math.mulDiv(amount, (10_000 - retirementFeeBips), 10_000);
-        } else {
-            minAmountLD = amount;
-        }
+    /// @dev Builds retirement send params to be send by LZ
+    function _buildRetireParams(address beneficiary, uint256 amount, bytes memory data)
+        internal
+        view
+        returns (SendParam memory params)
+    {
+        bytes memory retireCommand = MessageLib.encodeRetirementCommand(data);
+        params = SendParam({
+            dstEid: 0,
+            to: beneficiary.toBytes32(),
+            amountLD: amount,
+            minAmountLD: amount,
+            extraOptions: _buildDefaultGasOptions(),
+            composeMsg: "",
+            oftCmd: retireCommand
+        });
     }
 
-    function _payNative(uint256 _nativeFee) internal virtual override returns (uint256 nativeFee) {
-        if (msg.value < _nativeFee) revert NotEnoughNative(msg.value);
-        return _nativeFee;
+    /// @dev Builds default gas options for LZ operations on origin chain
+    function _buildDefaultGasOptions() internal view returns (bytes memory options) {
+        // TODO: Define as constant internal property
+        options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(retireGasLimit, 0);
     }
-
 }

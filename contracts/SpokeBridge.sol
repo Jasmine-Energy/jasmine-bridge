@@ -80,6 +80,10 @@ contract JasmineSpokeBridge is OApp, IOFTDeployer {
         OJLT(_oft).setPeer(_eid, _peer);
     }
 
+    function setDefaultRetireGasLimit(address ojlt, uint128 _gasLimit) external onlyOwner {
+        OJLT(ojlt).setRetireGasLimit(_gasLimit);
+    }
+
     //  ─────────────────────────────────────────────────────────────────────────────
     //  LayerZero Functions
     //  ─────────────────────────────────────────────────────────────────────────────
