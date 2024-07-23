@@ -249,7 +249,8 @@ task('oft:send', 'Send OFTs to another chain')
 
 task('oft:quote:retire', 'Get quote for retiring OFT')
     .addPositionalParam('oft', 'Address of the OFT token')
-    .setAction(async ({ oft }: TaskArguments, { ethers, getNamedAccounts }: HardhatRuntimeEnvironment) => {
+    .addPositionalParam('length', 'Length of reason string', '0')
+    .setAction(async ({ oft, length }: TaskArguments, { ethers, getNamedAccounts }: HardhatRuntimeEnvironment) => {
         const { owner } = await getNamedAccounts()
         const signer = await ethers.getSigner(owner)
 
@@ -257,7 +258,7 @@ task('oft:quote:retire', 'Get quote for retiring OFT')
         const oftContract = await ethers.getContractAt(contractName, oft, signer)
 
         // TODO: Include data length
-        const quote = await oftContract.quoteRetire(0)
+        const quote = await oftContract.quoteRetire(parseInt(length))
         console.log('Native fee:', quote)
 
         return quote
@@ -282,7 +283,7 @@ task('oft:retire', 'Retire OFT')
             const decimals = await oftContract.decimals()
             amount *= 10 ** decimals
 
-            const nativeFee = await oftContract.quoteRetire()
+            const nativeFee = await oftContract.quoteRetire(data ? data.length : 0)
 
             const retireTx = await oftContract.retire(
                 signer.address,
@@ -290,7 +291,7 @@ task('oft:retire', 'Retire OFT')
                 amount,
                 data ?? [],
                 {
-                    value: nativeFee, //.add(100_000_000),
+                    value: nativeFee,
                 }
             )
             console.log(`Retired OFTs at tx: ${retireTx.hash}`)
