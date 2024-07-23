@@ -6,7 +6,6 @@ on:
       - dev
   pull_request:
     branches:
-      - "!main" # Exclude testing on PR to main as it's a job in deploy
       - "*"
   workflow_dispatch:
 permissions:
