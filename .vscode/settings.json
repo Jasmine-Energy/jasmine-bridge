@@ -1,0 +1,10 @@
+{
+  "solidity.packageDefaultDependenciesContractsDirectory": "contracts",
+  "solidity.packageDefaultDependenciesDirectory": "node_modules",
+  "editor.formatOnSave": true,
+  "solidity.formatter": "forge",
+  "solidity.compileUsingRemoteVersion": "v0.8.24",
+  "solidity.defaultCompiler": "remote",
+  "solidity.compilerOptimization": 400,
+  "solidity-va.debug.parser.showExceptions": true
+}

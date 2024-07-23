@@ -21,13 +21,13 @@ JLT can be transferred in one of two methods, using ERC-2612 signed approvals or
 
 1. Allowance Signatures (ERC-2612)
 
-All JLT contract implement ERC-2612 signature allowances, enabling off-chain signature to be generated authorizing their usage. We've made a variant of the Layer Zero standard `OFTAdapter` which supports this style of approval, allowing approval and bridging to occur in a single transaction. See [`OFTPermitAdapter`](./contracts/extensions/OFTPermitAdapter.sol) for implementation.
+All JLT contract implement ERC-2612 signature allowances, enabling off-chain signature to be generated authorizing their usage. We've made a variant of the Layer Zero standard `OFTAdapter` which supports this style of approval, allowing approval and bridging to occur in a single transaction. See [`JLTAdapter`](./contracts/extensions/JLTAdapter.sol) for implementation.
 
 *TODO: Document process*
 
 2. Allowance Transaction (ERC-20)
 
-Alternatively, the `OFTPermitAdapter` supports standard ERC-20 allowances to be used for cross-chain bridging. To do so, you may use our convenient hardhat tasks.
+Alternatively, the `JLTAdapter` supports standard ERC-20 allowances to be used for cross-chain bridging. To do so, you may use our convenient hardhat tasks.
 
 You may use our hardhat task `token:approve` to conviently set the adapters allowance. For the JLT-B24 token on sepolia, you may do: `npx hardhat token:approve 0x8da50f4136B49Aa1d6D8cC35c7b0D9B2fA742Ad8 0xb6Bf3224abaDf4Eb56e5C5Fca465F620D2d7d7a2 --max --network sepolia` to authorize the adapter.
 
@@ -41,4 +41,4 @@ JLT may be sent back to the origin network using `oft:send`.
 
 > **Note:** This functionality is still under development
 
-To execute a retirement from an external network, a quote must first be fetched. This can be done via calling `quoteRetire` on the `JasmineOFT` contract. The quote will return the amount of native token that must be provided to the `retire` function to pay bridging fees.
+To execute a retirement from an external network, a quote must first be fetched. This can be done via calling `quoteRetire` on the `OJLT` contract. The quote will return the amount of native token that must be provided to the `retire` function to pay bridging fees.
