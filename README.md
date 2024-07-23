@@ -1,5 +1,12 @@
 <h1 align="center">Jasmine Bridge</h1>
 
+[![test](https://github.com/Jasmine-Energy/jasmine-bridge/actions/workflows/test.yml/badge.svg)](https://github.com/Jasmine-Energy/jasmine-bridge/actions/workflows/test.yml)
+[![GitBook - Documentation](https://img.shields.io/badge/GitBook-Documentation-orange?logo=gitbook&logoColor=white)](https://docs.jasmine.energy/)
+[![Chat](https://img.shields.io/discord/1012757430779789403)](https://discord.gg/bcGUebezJb)
+[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](./LICENSE)
+[![built-with openzeppelin](https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF)](https://docs.openzeppelin.com/)
+[![hardhat](https://hardhat.org/buidler-plugin-badge.svg)](https://hardhat.org)
+
 This repository contains the (work in progress) set of smart contracts enabling Jasmine Liquidity Tokens (JLT) to be bridged between EVM networks. The project makes use of Layer Zero's OFT standard to enabling cross-chain transfers.
 
 > :warning: **Under Construction**: These contract have no been audited and are not yet live! We expect to finish development in July 2024. Stay tuned!
