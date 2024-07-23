@@ -256,8 +256,9 @@ task('oft:quote:retire', 'Get quote for retiring OFT')
         const contractName = 'OJLT'
         const oftContract = await ethers.getContractAt(contractName, oft, signer)
 
-        const quote = await oftContract.quoteRetire()
-        console.log('Native fee:', quote[0])
+        // TODO: Include data length
+        const quote = await oftContract.quoteRetire(0)
+        console.log('Native fee:', quote)
 
         return quote
     })
@@ -281,7 +282,7 @@ task('oft:retire', 'Retire OFT')
             const decimals = await oftContract.decimals()
             amount *= 10 ** decimals
 
-            const [nativeFee] = await oftContract.quoteRetire()
+            const nativeFee = await oftContract.quoteRetire()
 
             const retireTx = await oftContract.retire(
                 signer.address,
