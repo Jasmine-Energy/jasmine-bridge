@@ -16,14 +16,14 @@ contract MockJLT is IJasminePool, ERC20Permit {
         return 6;
     }
 
-    function deposit(uint256 tokenId, uint256 quantity) external override returns (uint256 jltQuantity) {
+    function deposit(uint256, uint256 quantity) external override returns (uint256 jltQuantity) {
         _mint(msg.sender, quantity);
         return quantity;
     }
 
     function depositFrom(
         address from,
-        uint256 tokenId,
+        uint256,
         uint256 quantity
     ) external override returns (uint256 jltQuantity) {
         _mint(from, quantity);
@@ -31,7 +31,7 @@ contract MockJLT is IJasminePool, ERC20Permit {
     }
 
     function depositBatch(
-        address from,
+        address,
         uint256[] calldata tokenIds,
         uint256[] calldata quantities
     ) external override returns (uint256 jltQuantity) {
@@ -44,9 +44,9 @@ contract MockJLT is IJasminePool, ERC20Permit {
     }
 
     function withdraw(
-        address recipient,
+        address,
         uint256 quantity,
-        bytes calldata data
+        bytes calldata
     ) external override returns (uint256[] memory tokenIds, uint256[] memory amounts) {
         _burn(msg.sender, quantity);
         return (tokenIds, amounts);
@@ -54,20 +54,20 @@ contract MockJLT is IJasminePool, ERC20Permit {
 
     function withdrawFrom(
         address spender,
-        address recipient,
+        address,
         uint256 quantity,
-        bytes calldata data
+        bytes calldata
     ) external override returns (uint256[] memory tokenIds, uint256[] memory amounts) {
         _burn(spender, quantity);
         return (tokenIds, amounts);
     }
 
     function withdrawSpecific(
-        address spender,
-        address recipient,
-        uint256[] calldata tokenIds,
-        uint256[] calldata quantities,
-        bytes calldata data
+        address,
+        address,
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
     ) external override {
         // no-op
     }
@@ -85,15 +85,15 @@ contract MockJLT is IJasminePool, ERC20Permit {
         return amount;
     }
 
-    function meetsPolicy(uint256 tokenId) external view override returns (bool isEligible) {
+    function meetsPolicy(uint256) external view override returns (bool isEligible) {
         return true;
     }
 
-    function policyForVersion(uint8 metadataVersion) external view override returns (bytes memory policy) {
+    function policyForVersion(uint8) external view override returns (bytes memory policy) {
         return abi.encodePacked("NO_POLICY");
     }
 
-    function retire(address from, address beneficiary, uint256 amount, bytes calldata data) external {
+    function retire(address from, address beneficiary, uint256 amount, bytes calldata) external {
         emit Retirement(from, beneficiary, amount);
 
         _burn(from, amount);

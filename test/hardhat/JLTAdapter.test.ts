@@ -1,9 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { expect } from 'chai'
 import { Contract, ContractFactory } from 'ethers'
 import { deployments, ethers } from 'hardhat'
-
-import { Options } from '@layerzerolabs/lz-v2-utilities'
 
 describe('JLT Adapter Test', function () {
     // Constant representing a mock Endpoint ID for testing purposes

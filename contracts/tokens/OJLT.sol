@@ -10,7 +10,6 @@ import {OFT} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFT.sol";
 import {OFTCore} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
 import {OAppSender} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {OptionsBuilder} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
-import {OFTMsgCodec} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
 import {
     SendParam,
     MessagingFee,
@@ -127,7 +126,7 @@ contract OJLT is OFT, ERC20Permit, IRetireableOJLT {
         (bool isValidCmd, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(_message);
         // QUESTION: Consider reverting if isValidCmd is false
         if (isValidCmd && messageType == MessageLib.MessageType.RETIREMENT) {
-            (address beneficiary, uint256 amount, bytes memory data) =
+            (address beneficiary, uint256 amount,) =
                 MessageLib._decodeRetirementMessage(_message);
             emit Retirement(msg.sender, beneficiary, amount);
         }

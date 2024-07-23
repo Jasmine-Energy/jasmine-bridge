@@ -8,3 +8,5 @@ out/
 *.yaml
 *.lock
 package-lock.json
+test/foundry/
+contracts/

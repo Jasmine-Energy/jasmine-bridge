@@ -16,7 +16,7 @@ import {Create3} from "@0xsequence/create3/contracts/Create3.sol";
 import {IOJLTDeployer} from "./interfaces/IOJLTDeployer.sol";
 import {OJLT} from "./tokens/OJLT.sol";
 import {BytesLib} from "./utilities/BytesLib.sol";
-import {TransientBytesLib, TransientBytes} from "./utilities/TransientBytesLib.sol";
+import {TransientBytes} from "./utilities/TransientBytesLib.sol";
 
 /**
  * @title Jasmine Spoke Bridge

@@ -32,10 +32,10 @@ library MessageLib {
     //  Byte Encoding Constants
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    uint8 constant MSG_TYPE_OFFSET = 0;
-    uint8 constant USER_OFFSET = 1;
-    uint8 constant AMOUNT_OFFSET = 21;
-    uint8 constant DATA_OFFSET = 53;
+    uint8 private constant MSG_TYPE_OFFSET = 0;
+    uint8 private constant USER_OFFSET = 1;
+    uint8 private constant AMOUNT_OFFSET = 21;
+    uint8 private constant DATA_OFFSET = 53;
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Encoding Functions
