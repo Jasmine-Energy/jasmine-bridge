@@ -15,7 +15,7 @@ jobs:
   test:
     runs-on: [self-hosted, laboratory]
     env:
-      ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       contents: read
       packages: read
@@ -34,8 +34,6 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
       - run: yarn install
         shell: bash
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
       - name: Compile Contracts
         run: yarn run compile
       - name: Run Hardhat Tests
