@@ -1,0 +1,43 @@
+name: test
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - "!main" # Exclude testing on PR to main as it's a job in deploy
+      - "*"
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: read
+jobs:
+  test:
+    runs-on: [self-hosted, laboratory]
+    env:
+      ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install packages
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.18.0"
+          cache: "yarn"
+      - name: Install yarn
+        run: npm install -g yarn
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - run: yarn install
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+      - name: Compile Contracts
+        run: yarn run compile
+      - name: Run Hardhat Tests
+        run: yarn run test

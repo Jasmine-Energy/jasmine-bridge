@@ -4,8 +4,7 @@ pragma solidity ^0.8.24;
 
 // TODO: Override Ownable to point to JasminePoolFactory's owner
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {OApp, MessagingFee, Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
-import {MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
+import {OApp, Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import {JLTAdapter} from "./tokens/JLTAdapter.sol";
 import {BytesLib} from "./utilities/BytesLib.sol";
 import {Create3} from "@0xsequence/create3/contracts/Create3.sol";

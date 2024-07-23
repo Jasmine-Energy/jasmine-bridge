@@ -7,14 +7,13 @@ pragma solidity ^0.8.24;
 //  ─────────────────────────────────────────────────────────────────────────────
 
 import {OFTAdapter} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapter.sol";
-import {OApp, MessagingFee, Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
+import {Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import {OFTMsgCodec} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {MessageLib} from "../utilities/MessageLib.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IJasminePool} from "../interfaces/jasmine/IJasminePool.sol";
-import {JasmineErrors} from "@jasmine-energy/pools-contracts/contracts/interfaces/errors/JasmineErrors.sol";
 
 
 /**

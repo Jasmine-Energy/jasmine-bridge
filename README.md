@@ -23,7 +23,7 @@ JLT can be transferred in one of two methods, using ERC-2612 signed approvals or
 
 All JLT contract implement ERC-2612 signature allowances, enabling off-chain signature to be generated authorizing their usage. We've made a variant of the Layer Zero standard `OFTAdapter` which supports this style of approval, allowing approval and bridging to occur in a single transaction. See [`JLTAdapter`](./contracts/extensions/JLTAdapter.sol) for implementation.
 
-*TODO: Document process*
+_TODO: Document process_
 
 2. Allowance Transaction (ERC-20)
 
