@@ -5,19 +5,20 @@ pragma solidity ^0.8.0;
 import {MessagingReceipt, OFTReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 
 /**
- * @title Jasmine Retireable Pool Interface
+ * @title Retireable OJLT Interface
  * @author Kai Aldag<kai.aldag@jasmine.energy>
- * @notice Extends pools with retirement functionality and events.
+ * @notice Defines OJLT that can be retired
  * @custom:security-contact dev@jasmine.energy
  */
-interface IJasmineRetireablePool {
+interface IRetireableOJLT {
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Events
     //  ─────────────────────────────────────────────────────────────────────────────
 
     /**
-     * @notice emitted when tokens from a pool are retired
+     * @notice Emitted when omnichain JLT (OJLT) are burned and sent to origin chain
+     * for retirement
      *
      * @dev must be accompanied by a token burn event
      *
@@ -34,7 +35,7 @@ interface IJasmineRetireablePool {
     /**
      * @notice Burns 'quantity' of tokens from 'owner' in the name of 'beneficiary'.
      *
-     * @dev Internally, calls are routed to Retirement Service to facilitate the retirement.
+     * @dev Executes retirement on origin chain using LZ message
      *
      * @dev Emits a {Retirement} event.
      *
@@ -48,12 +49,14 @@ interface IJasmineRetireablePool {
      * @param amount Number of JLTs to withdraw
      * @param data Optional calldata to relay to retirement service via onERC1155Received
      *
+     * @return msgReceipt LayerZero message receipt containing identifiers and metadata
+     * @return oftReceipt LayerZero OFT receipt regarding the send
      */
     function retire(
         address from,
         address beneficiary,
         uint256 amount,
         bytes calldata data
-    ) external returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+    ) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
 
 }

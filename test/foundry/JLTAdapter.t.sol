@@ -11,7 +11,8 @@ import {IOAppCore} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IJasmineRetireablePool as IRetireablePool} from "src/interfaces/jasmine/IRetireablePool.sol";
+import {IRetireableOJLT} from "src/interfaces/IRetireableOJLT.sol";
+// import {IJasmineRetireablePool as IRetireablePool} from "src/interfaces/jasmine/IRetireablePool.sol";
 
 import {JasmineHubBridge} from "src/HubBridge.sol";
 import {JasmineSpokeBridge} from "src/SpokeBridge.sol";
@@ -74,7 +75,7 @@ contract JLTAdapterTest is TestHelperOz5 {
         underlying = new MockJLT();
 
         address predictedAdapter = hubBridge.predictAdapterAddress(address(underlying));
-        address predictedOJLT = spokeBridge.predictOFTAddress(address(underlying));
+        address predictedOJLT = spokeBridge.predictOJLTAddress(address(underlying));
 
         hubBridge.transferOwnership(owner);
         spokeBridge.transferOwnership(owner);
@@ -130,8 +131,8 @@ contract JLTAdapterTest is TestHelperOz5 {
     function _createOJLT() private {
         vm.startPrank(owner);
         ojlt = OJLT(
-            spokeBridge.createOFT(
-                address(underlying), underlying.name(), underlying.symbol(), address(adapter).toBytes32()
+            spokeBridge.createOJLT(
+                address(underlying), address(adapter), underlying.name(), underlying.symbol()
             )
         );
         vm.stopPrank();
@@ -170,14 +171,14 @@ contract JLTAdapterTest is TestHelperOz5 {
         assertEq(hubBridge.owner(), owner);
         assertEq(spokeBridge.owner(), owner);
 
-        assertEq(spokeBridge.getRootEid(), originEid);
+        assertEq(spokeBridge.getOriginEid(), originEid);
     }
 
     function test_deployAdapter() public {
         address expected = hubBridge.predictAdapterAddress(address(underlying));
 
         vm.expectEmit(address(hubBridge));
-        emit JasmineHubBridge.OFTAdapterCreated(address(underlying), expected);
+        emit JasmineHubBridge.JLTAdapterCreated(address(underlying), expected);
 
         vm.prank(owner);
         hubBridge.createAdapter(address(underlying));
@@ -207,17 +208,23 @@ contract JLTAdapterTest is TestHelperOz5 {
     }
 
     function test_deployOJLT() public adapterDeployed {
-        address expected = spokeBridge.predictOFTAddress(address(underlying));
+        address expected = spokeBridge.predictOJLTAddress(address(underlying));
 
         vm.expectEmit(address(spokeBridge));
-        emit JasmineSpokeBridge.OFTCreated(address(underlying), expected);
+        emit JasmineSpokeBridge.OJLTCreated(address(underlying), expected);
 
         vm.startPrank(owner);
-        address deployedOJLT = spokeBridge.createOFT(address(underlying), underlying.name(), underlying.symbol(), address(adapter).toBytes32());
+        address deployedOJLT = spokeBridge.createOJLT(
+            address(underlying), address(adapter), underlying.name(), underlying.symbol()
+        );
         vm.stopPrank();
 
         assertEq(deployedOJLT, expected, "Address should match predicted address");
-        assertEq(OJLT(deployedOJLT).peers(originEid), address(adapter).toBytes32(), "OJLT should have origin peer set");
+        assertEq(
+            OJLT(deployedOJLT).peers(originEid),
+            address(adapter).toBytes32(),
+            "OJLT should have origin peer set"
+        );
     }
 
     //  ────────────────────────────  Conversion Tests  ───────────────────────────────  \\
@@ -259,7 +266,11 @@ contract JLTAdapterTest is TestHelperOz5 {
             underlying.balanceOf(address(adapter)),
             "Adapter should receive bridged JLT"
         );
-        assertEq(oftReceipt.amountSentLD, oftReceipt.amountReceivedLD, "Sent and received amounts should be equal in receipt");
+        assertEq(
+            oftReceipt.amountSentLD,
+            oftReceipt.amountReceivedLD,
+            "Sent and received amounts should be equal in receipt"
+        );
 
         userBalanceBefore = ojlt.balanceOf(user1);
 
@@ -279,9 +290,7 @@ contract JLTAdapterTest is TestHelperOz5 {
         bytes memory reasonData = "";
         uint256 userBalanceBefore = ojlt.balanceOf(user1);
 
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(SEND_GAS_LIMIT, 0);
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(SEND_GAS_LIMIT, 0);
         bytes memory retireCommand = MessageLib.encodeRetirementCommand(reasonData);
 
         SendParam memory params =
@@ -291,7 +300,7 @@ contract JLTAdapterTest is TestHelperOz5 {
         vm.expectEmit(address(ojlt));
         emit IERC20.Transfer(user1, address(0), amount);
         vm.expectEmit(address(ojlt));
-        emit OJLT.Retire(user1, user1, amount);
+        emit IRetireableOJLT.Retirement(user1, user1, amount);
 
         vm.prank(user1);
         ojlt.send{value: fee.nativeFee}(params, fee, user1);
@@ -317,7 +326,7 @@ contract JLTAdapterTest is TestHelperOz5 {
         vm.expectEmit(address(ojlt));
         emit IERC20.Transfer(user1, address(0), amount);
         vm.expectEmit(address(ojlt));
-        emit OJLT.Retire(user1, user1, amount);
+        emit IRetireableOJLT.Retirement(user1, user1, amount);
 
         vm.prank(user1);
         (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) =
@@ -332,7 +341,6 @@ contract JLTAdapterTest is TestHelperOz5 {
         verifyPackets(originEid, address(adapter).toBytes32());
     }
 
-
     //  ────────────────────────────────  Owner Tests  ─────────────────────────────────  \\
 
     function test_setGasLimit(uint128 gasLimit) public configured {
@@ -341,4 +349,5 @@ contract JLTAdapterTest is TestHelperOz5 {
 
         assertEq(ojlt.retireGasLimit(), gasLimit);
     }
+
 }

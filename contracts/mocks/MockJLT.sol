@@ -2,10 +2,12 @@
 
 pragma solidity ^0.8.24;
 
-import {IJasminePool} from "../interfaces/jasmine/IJasminePool.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
+import {IJasminePool} from "../interfaces/jasmine/IJasminePool.sol";
+
+/// @dev Internal Mock JLT for testing
 contract MockJLT is IJasminePool, ERC20Permit {
 
     constructor() ERC20("Jasmine Liquidity Token", "JLT") ERC20Permit("Jasmine Liquidity Token") {}
@@ -91,12 +93,7 @@ contract MockJLT is IJasminePool, ERC20Permit {
         return abi.encodePacked("NO_POLICY");
     }
 
-    function retire(
-        address from,
-        address beneficiary,
-        uint256 amount,
-        bytes calldata data
-    ) external override {
+    function retire(address from, address beneficiary, uint256 amount, bytes calldata data) external {
         emit Retirement(from, beneficiary, amount);
 
         _burn(from, amount);

@@ -41,9 +41,7 @@ library MessageLib {
     //  Encoding Functions
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    function encodeRetirementCommand(
-        bytes memory data
-    ) internal pure returns (bytes memory command) {
+    function encodeRetirementCommand(bytes memory data) internal pure returns (bytes memory command) {
         return abi.encodePacked(MessageType.RETIREMENT, data);
     }
 
@@ -112,7 +110,11 @@ library MessageLib {
         amount = message.toUint256(AMOUNT_OFFSET);
     }
 
-    function decodeRetireCommandReason(bytes memory message) internal pure returns (bytes memory reasonData) {
+    function decodeRetireCommandReason(bytes memory message)
+        internal
+        pure
+        returns (bytes memory reasonData)
+    {
         if (message.length > 1) reasonData = message.slice(1, message.length - 1);
         else reasonData = "";
     }

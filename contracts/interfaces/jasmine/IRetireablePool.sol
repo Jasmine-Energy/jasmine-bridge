@@ -43,7 +43,7 @@ interface IJasmineRetireablePool {
      *
      * @param from JLT owner from which to burn tokens
      * @param beneficiary Address to receive retirement acknowledgment. If none, assume msg.sender
-     * @param amount Number of JLTs to withdraw
+     * @param amount Number of JLTs to retire
      * @param data Optional calldata to relay to retirement service via onERC1155Received
      *
      */

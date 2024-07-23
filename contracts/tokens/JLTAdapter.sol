@@ -8,21 +8,23 @@ pragma solidity ^0.8.24;
 
 import {OFTAdapter} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapter.sol";
 import {OApp, MessagingFee, Origin} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
+import {OFTCore} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
 import {OFTMsgCodec} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
+
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
-import {MessageLib} from "../utilities/MessageLib.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {IJasminePool} from "../interfaces/jasmine/IJasminePool.sol";
-import {JasmineErrors} from "@jasmine-energy/pools-contracts/contracts/interfaces/errors/JasmineErrors.sol";
 
+import {JasmineErrors} from "@jasmine-energy/pools-contracts/contracts/interfaces/errors/JasmineErrors.sol";
+import {MessageLib} from "../utilities/MessageLib.sol";
+import {IJasminePool} from "../interfaces/jasmine/IJasminePool.sol";
 
 /**
  * @title JLT Adapter
  * @author Kai Aldag<kai.aldag@jasmine.energy>
  * @notice Modified OFTAdapter (from LayerZero) enabling ERC-2612 allowance signatures
  * as well as custom cross-chain retirement logic.
- * @custom:security-contact Kai Aldag<kai.aldag@jasmine.energy
+ * @custom:security-contact dev@jasmine.energy
  */
 contract JLTAdapter is OFTAdapter, Multicall {
 
@@ -79,9 +81,7 @@ contract JLTAdapter is OFTAdapter, Multicall {
     //  LayerZero Functions
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    /**
-     * @dev
-     */
+    /// @inheritdoc OFTCore
     function _lzReceive(
         Origin calldata _origin,
         bytes32 _guid,
@@ -108,6 +108,10 @@ contract JLTAdapter is OFTAdapter, Multicall {
 
     //  ─────────────────────────────  Message Parsing  ─────────────────────────────  \\
 
+    /**
+     * @dev If payload from _lzReceive requires custom business logic (ie. retirement
+     * or EAT withdraws), this function will parse and handle execution.
+     */
     function _executeLzMessage(bytes calldata message) internal {
         (bool isValid, MessageLib.MessageType operation) = message._decodeMessageType();
         if (!isValid) revert MessageLib.InvalidMessageType(message[0]);
@@ -126,24 +130,14 @@ contract JLTAdapter is OFTAdapter, Multicall {
 
     //  ────────────────────────────  JLT Interactions  ─────────────────────────────  \\
 
+    /// @dev Executes a JLT retirement using custodied assets with given fields
     function _retireJLT(address beneficiary, uint256 amount, bytes memory data) internal {
         IJasminePool(address(innerToken)).retire(address(this), beneficiary, amount, data);
     }
 
+    /// @dev Executes an EAT withdrawal using custodied JLT
     function _withdrawAny(address recipient, uint256 amount) internal {
         // TODO: Withdraw JLT
-    }
-
-    //  ─────────────────────────────────────────────────────────────────────────────
-    //  Overrides
-    //  ─────────────────────────────────────────────────────────────────────────────
-
-    function _debitView(
-        uint256 _amountLD,
-        uint256,
-        uint32
-    ) internal view virtual override returns (uint256 amountSentLD, uint256 amountReceivedLD) {
-        return (_amountLD, _amountLD);
     }
 
 }

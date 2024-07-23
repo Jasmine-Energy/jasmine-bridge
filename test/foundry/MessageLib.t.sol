@@ -20,9 +20,14 @@ contract MessageLibTest is Test {
 
         (bool isValid, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(message);
         assertTrue(isValid, "Message should be valid");
-        assertEq(uint(messageType), uint(MessageLib.MessageType.RETIREMENT), "Message type should be RETIREMENT");
+        assertEq(
+            uint256(messageType),
+            uint256(MessageLib.MessageType.RETIREMENT),
+            "Message type should be RETIREMENT"
+        );
 
-        (address decodedBenefiary, uint256 decodedAmount, bytes memory decodedReason) = MessageLib._decodeRetirementMessage(message);
+        (address decodedBenefiary, uint256 decodedAmount, bytes memory decodedReason) =
+            MessageLib._decodeRetirementMessage(message);
         assertEq(decodedBenefiary, benefiary, "Message beneficiary should be correct");
         assertEq(decodedAmount, amount, "Message amount should be correct");
         assertEq(decodedReason, reason, "Message reason should be correct");
@@ -39,9 +44,14 @@ contract MessageLibTest is Test {
 
         (bool isValid, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(message);
         assertTrue(isValid, "Message should be valid");
-        assertEq(uint(messageType), uint(MessageLib.MessageType.RETIREMENT), "Message type should be RETIREMENT");
+        assertEq(
+            uint256(messageType),
+            uint256(MessageLib.MessageType.RETIREMENT),
+            "Message type should be RETIREMENT"
+        );
 
-        (address decodedBenefiary, uint256 decodedAmount, bytes memory decodedReason) = MessageLib._decodeRetirementMessage(message);
+        (address decodedBenefiary, uint256 decodedAmount, bytes memory decodedReason) =
+            MessageLib._decodeRetirementMessage(message);
         assertEq(decodedBenefiary, benefiary, "Message beneficiary should be correct");
         assertEq(decodedAmount, amount, "Message amount should be correct");
         assertEq(decodedReason, reason, "Message reason should be correct");
@@ -57,7 +67,9 @@ contract MessageLibTest is Test {
 
         (bool isValid, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(message);
         assertTrue(isValid, "Message should be valid");
-        assertEq(uint(messageType), uint(MessageLib.MessageType.SEND), "Message type should be TRANSFER");
+        assertEq(
+            uint256(messageType), uint256(MessageLib.MessageType.SEND), "Message type should be TRANSFER"
+        );
 
         (address decodedRecipient, uint256 decodedAmount) = MessageLib._decodeTransferMessage(message);
         assertEq(decodedRecipient, recipient, "Message recipient should be correct");
@@ -74,10 +86,15 @@ contract MessageLibTest is Test {
 
         (bool isValid, MessageLib.MessageType messageType) = MessageLib._decodeMessageType(message);
         assertTrue(isValid, "Message should be valid");
-        assertEq(uint(messageType), uint(MessageLib.MessageType.WITHDRAW_ANY), "Message type should be WITHDRAW_ANY");
+        assertEq(
+            uint256(messageType),
+            uint256(MessageLib.MessageType.WITHDRAW_ANY),
+            "Message type should be WITHDRAW_ANY"
+        );
 
         (address decodedRecipient, uint256 decodedAmount) = MessageLib._decodeWithdrawAnyMessage(message);
         assertEq(decodedRecipient, recipient, "Message recipient should be correct");
         assertEq(decodedAmount, amount, "Message amount should be correct");
     }
+
 }
