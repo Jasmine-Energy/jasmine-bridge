@@ -52,6 +52,10 @@ quote_style = 'double'
 number_underscore = 'thousands'
 wrap_comments = true
 
+[doc]
+repository = 'https://github.com/Jasmine-Energy/jasmine-bridge'
+ignore = ['contracts/mocks', 'contracts/interfaces/jasmine']
+
 [etherscan]
 polygon = { key = "${POLYSCAN_API_KEY}", chain = "polygon", url = "https://api.polygonscan.com/" }
 base = { key = "${BASESCAN_API_KEY}", chain = "base", url = "https://api.basescan.org/" }
