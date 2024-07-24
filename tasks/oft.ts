@@ -4,15 +4,9 @@ import { task } from 'hardhat/config'
 
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 
+import { explorerLink, hyperlink } from './utils'
+
 import type { HardhatRuntimeEnvironment, HttpNetworkConfig, TaskArguments } from 'hardhat/types'
-
-const hyperlink = (url: string, text: string) => {
-    const OSC = '\u001B]'
-    const BEL = '\u0007'
-    const SEP = ';'
-
-    return [OSC, '8', SEP, SEP, url || text, BEL, text, OSC, '8', SEP, SEP, BEL].join('')
-}
 
 const logLayerZeroTx = (tx: string | { hash: string }, isTestnet: boolean) => {
     const txHash = typeof tx === 'string' ? tx : tx.hash
@@ -44,7 +38,9 @@ task('create:adapter', 'Creates a new OFT adapter on Hub bridge')
             const adapterAddress = result.events
                 ?.find((e: { event: string }) => e.event === 'OFTAdapterCreated')
                 ?.args?.at(1)
-            console.log(`Adapter created: ${adapterAddress} for: ${underlying} at tx: ${result.transactionHash}`)
+            console.log(
+                `Adapter created: ${explorerLink(network, adapterAddress)} for: ${explorerLink(network, underlying)} at tx: ${explorerLink(network, result.transactionHash)}`
+            )
 
             return adapterAddress
         }
@@ -91,7 +87,9 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
             const tx = await bridgeContract.createOFT(underlying, name, symbol, peer)
             const result = await tx.wait()
             const oftAddress = result.events?.find((e: { event: string }) => e.event === 'OFTCreated')?.args?.at(1)
-            console.log(`OFT created: ${oftAddress} for: ${underlying} at tx: ${result.transactionHash}`)
+            console.log(
+                `OFT created: ${explorerLink(network, oftAddress)} for: ${explorerLink(network, underlying)} at tx: ${explorerLink(network, result.transactionHash)}`
+            )
 
             return oftAddress
         }
@@ -116,7 +114,7 @@ task('adapter:get', 'Gets an OFT adapter')
             const bridgeContract = await ethers.getContractAt(contractName, bridgeDeployment.address, ownerSigner)
 
             const adapter = await bridgeContract.adapters(underlying)
-            console.log(`Adapter: ${adapter}`)
+            console.log(`Adapter: ${explorerLink(network, adapter)}`)
         }
     )
 
@@ -148,7 +146,7 @@ task('adapter:peer:set', 'Sets an OFT adapters peer')
             const tx = await bridgeContract.setAdapterPeer(adapter, eid, peerAddress)
             const result = await tx.wait()
             console.log(
-                `Added peer: ${peer} (on network: ${destination}) to adapter: ${adapter} (on network: ${currentNetwork.name}) at tx: ${result.transactionHash}`
+                `Added peer: ${peer} (on network: ${destination}) to adapter: ${explorerLink(currentNetwork, adapter)} (on network: ${currentNetwork.name}) at tx: ${explorerLink(currentNetwork, result.transactionHash)}`
             )
         }
     )
@@ -196,7 +194,7 @@ task('oft:quote:send', 'Send OFTs to another chain')
 
             const toAddress = ethers.utils.hexlify(ethers.utils.zeroPad(to ? to : signer.address, 32))
 
-            const options = Options.newOptions().addExecutorLzReceiveOption(75_000, 0).toHex().toString()
+            const options = Options.newOptions().addExecutorLzReceiveOption(250_000, 0).toHex().toString()
             const params = [eid, toAddress, amount, amount, options, [], []]
             const quote = await oftContract.quoteSend(params, false)
             console.log('Native fee:', quote[0])
@@ -273,7 +271,7 @@ task('oft:retire', 'Retire OFT')
     .setAction(
         async (
             { oft, amount, beneficiary, from, data }: TaskArguments,
-            { ethers, getNamedAccounts }: HardhatRuntimeEnvironment
+            { ethers, getNamedAccounts, network }: HardhatRuntimeEnvironment
         ) => {
             const { owner } = await getNamedAccounts()
             const signer = await ethers.getSigner(from ? from : owner)
@@ -294,7 +292,7 @@ task('oft:retire', 'Retire OFT')
                     value: nativeFee,
                 }
             )
-            console.log(`Retired OFTs at tx: ${retireTx.hash}`)
+            console.log(`Retired OFTs at tx: ${explorerLink(network, retireTx.hash)}`)
         }
     )
 

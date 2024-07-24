@@ -1,5 +1,7 @@
 import { task } from 'hardhat/config'
 
+import { explorerLink } from './utils'
+
 import type { HardhatRuntimeEnvironment, TaskArguments } from 'hardhat/types'
 
 task('token:name', 'Prints the name of the token')
@@ -36,13 +38,13 @@ task('token:decimals', 'Prints the decimals of the token')
 
 task('token:send', 'Send tokens to an address')
     .addPositionalParam('token', 'Address of the token')
-    .addPositionalParam('spender', 'Address of the spender')
+    .addPositionalParam('recipient', 'Address to receive tokens')
     .addPositionalParam('amount', 'Amount to send in formatted using token decimals')
     .addOptionalParam('from', 'Address of the signer')
     .setAction(
         async (
-            { token, spender, amount, from }: TaskArguments,
-            { ethers, getNamedAccounts }: HardhatRuntimeEnvironment
+            { token, recipient, amount, from }: TaskArguments,
+            { ethers, getNamedAccounts, network }: HardhatRuntimeEnvironment
         ) => {
             if (!from) {
                 from = (await getNamedAccounts()).owner
@@ -51,8 +53,8 @@ task('token:send', 'Send tokens to an address')
             const tokenContract = await ethers.getContractAt('IERC20Metadata', token, signer)
             const decimals = await tokenContract.decimals()
             amount *= 10 ** decimals
-            const tx = await tokenContract.transfer(spender, amount)
-            console.log(`Sent ${amount} tokens to ${spender} with tx hash: ${tx.hash}`)
+            const tx = await tokenContract.transfer(recipient, amount)
+            console.log(`Sent ${amount} tokens to ${recipient} with tx hash: ${explorerLink(network, tx.hash)}`)
         }
     )
 
@@ -65,7 +67,7 @@ task('token:approve', 'Approve spending of tokens')
     .setAction(
         async (
             { token, spender, amount, from }: TaskArguments,
-            { ethers, getNamedAccounts }: HardhatRuntimeEnvironment
+            { ethers, getNamedAccounts, network }: HardhatRuntimeEnvironment
         ) => {
             if (!from) {
                 from = (await getNamedAccounts()).owner
@@ -79,6 +81,6 @@ task('token:approve', 'Approve spending of tokens')
                 amount = ethers.constants.MaxUint256
             }
             const tx = await tokenContract.approve(spender, amount)
-            console.log(`Approved ${amount} tokens to ${spender} with tx hash: ${tx.hash}`)
+            console.log(`Approved ${amount} tokens to ${spender} with tx hash: ${explorerLink(network, tx.hash)}`)
         }
     )
