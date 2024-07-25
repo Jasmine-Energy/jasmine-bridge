@@ -5,6 +5,7 @@
 // - Fill in the environment variables
 import 'dotenv/config'
 
+import 'hardhat-abi-exporter'
 import 'hardhat-deploy'
 import 'hardhat-contract-sizer'
 import '@nomiclabs/hardhat-ethers'
@@ -140,6 +141,17 @@ const config: HardhatUserConfig = {
     },
     sourcify: {
         enabled: true,
+    },
+    abiExporter: {
+        clear: true,
+        except: [
+            '@0xsequence',
+            '@layerzerolabs',
+            '@openzeppelin',
+            'contracts/mocks',
+            'contracts/utilities',
+            'contracts/interfaces/jasmine',
+        ],
     },
 }
 

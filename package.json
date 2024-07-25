@@ -6,6 +6,7 @@
   "scripts": {
     "clean": "rm -rf artifacts cache out",
     "compile": "$npm_execpath run compile:forge && $npm_execpath run compile:hardhat",
+    "compile:abi": "npx hardhat export-abi",
     "compile:forge": "forge build",
     "compile:hardhat": "hardhat compile",
     "deploy": "npx hardhat deploy --network polygon && npx hardhat deploy --network base",
@@ -53,6 +54,7 @@
     "eslint-plugin-jest-extended": "~2.0.0",
     "ethers": "^5.7.2",
     "hardhat": "^2.22.3",
+    "hardhat-abi-exporter": "^2.10.1",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-deploy": "^0.12.1",
     "mocha": "^10.2.0",

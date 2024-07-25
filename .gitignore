@@ -8,7 +8,6 @@ typechain-types
 # Hardhat files
 cache
 artifacts
-abi
 gasReports
 deployments/localhost
 deployments/hardhat
@@ -32,3 +31,6 @@ pnpm-error.log
 
 # TS generated files
 dist
+
+# yarn
+.yarn
