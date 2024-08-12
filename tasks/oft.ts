@@ -95,7 +95,7 @@ task('create:oft', 'Creates an OFT token on Spoke bridge')
         }
     )
 
-task('adapter:get', 'Gets an OFT adapter')
+task('get', 'Gets a JLT adapter or OJLT')
     .addPositionalParam('underlying', 'Address of the underlying token')
     .setAction(
         async (
@@ -105,16 +105,23 @@ task('adapter:get', 'Gets an OFT adapter')
             const { owner } = await getNamedAccounts()
             const ownerSigner = await ethers.getSigner(owner)
 
-            if (network.name !== 'sepolia' && network.name !== 'polygon') {
-                throw new Error('This task can only be run on Amoy or Polygon network')
+            if (network.name === 'sepolia' || network.name === 'polygon') {
+                const contractName = 'JasmineHubBridge'
+                const deployment = await deployments.get(contractName)
+                const bridgeContract = await ethers.getContractAt(contractName, deployment.address, ownerSigner)
+
+                const adapter = await bridgeContract.adapters(underlying)
+                console.log(`Adapter: ${explorerLink(network, adapter)}`)
+            } else if (network.name === 'baseSepolia' || network.name === 'base') {
+                const contractName = 'JasmineSpokeBridge'
+                const deployment = await deployments.get(contractName)
+                const bridgeContract = await ethers.getContractAt(contractName, deployment.address, ownerSigner)
+
+                const adapter = await bridgeContract.ofts(underlying)
+                console.log(`Adapter: ${explorerLink(network, adapter)}`)
+            } else {
+                throw new Error(`Unknown network: ${network.name}. Please use polygon or base - or associated testnet`)
             }
-            const contractName = 'JasmineHubBridge'
-
-            const bridgeDeployment = await deployments.get(contractName)
-            const bridgeContract = await ethers.getContractAt(contractName, bridgeDeployment.address, ownerSigner)
-
-            const adapter = await bridgeContract.adapters(underlying)
-            console.log(`Adapter: ${explorerLink(network, adapter)}`)
         }
     )
 
